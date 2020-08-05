@@ -2,7 +2,7 @@
 
 Inspired by: [dwarfexport](https://github.com/ALSchwalm/dwarfexport)
 
-## Build
+## Build libdwarf
 
 ### Linux
 
@@ -23,13 +23,23 @@ Now there is the header file of libdwarf in `/tmp/dwbuild/libdwarf.h` and the
 shared library in `/tmp/dwbuild/libdwarf/.libs/libdwarf.so`. They are already
 available in [include](./include) and [libs](./lib)
 
+### Windows
+
+TODO
+
+## Build libdwarf java wrapper
+
 We want to generate a java wrapper and we opted for [JNAerator](https://github.com/nativelibs4java/JNAerator),
 availabe in [jar](./jar/jnaerator-0.12.jar). With this tool we can create the
-interfaces needed for [JNA](https://github.com/java-native-access/jna) to work.
+interfaces needed for [JNA](https://github.com/java-native-access/jna) to work 
+using `libdwarf.h`. We have modified a bit the `pom.xml` to generate the jar.
 
-This is the [libdwarf](./jar/libdwarf.jar) generated from JNAerator.
+## Use libdwarf in ghidra's jython
 
-Now in ghidra we can access through jython to the libdwarf with `import libdwarf`.
+This is the [libdwarf](./jar/libdwarf.jar) generated from JNAerator. Now you can
+move this jar inside `~/.ghidra/.${GHIDRA_VERSION}_PUBLIC/plugins`
+
+Now in ghidra we can access the libdwarf through jython with `import libdwarf`.
 
 However we didn't specify how the `libdwarf` jar communicate with `libdwarf.so` --> TODO
 

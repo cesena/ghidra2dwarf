@@ -1,4 +1,4 @@
 *.gpr
 *.rep
 ghidra/
-./ghidra_builtins.pyi
+ghidra_builtins.pyi

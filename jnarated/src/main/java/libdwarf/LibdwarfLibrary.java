@@ -1080,6 +1080,12 @@ public interface LibdwarfLibrary extends Library {
 	 * Original signature : <code>Dwarf_P_Attribute dwarf_add_AT_name(Dwarf_P_Die, char*, Dwarf_Error*)</code><br>
 	 * <i>native declaration : line 4144</i>
 	 */
+	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_name(LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, String charPtr1, PointerByReference Dwarf_ErrorPtr1);
+	/**
+	 * die<br>
+	 * Original signature : <code>Dwarf_P_Attribute dwarf_add_AT_name(Dwarf_P_Die, char*, Dwarf_Error*)</code><br>
+	 * <i>native declaration : line 4144</i>
+	 */
 	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_name(Pointer Dwarf_P_Die1, Pointer charPtr1, PointerByReference Dwarf_ErrorPtr1);
 										/**
 	 * Producer line creation functions (.debug_line)<br>

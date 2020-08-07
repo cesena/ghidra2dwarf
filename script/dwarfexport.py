@@ -17,6 +17,9 @@ from ghidra.app.util.bin.format.elf import ElfSymbolTable
 
 from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference
+from com.sun.jna import Pointer
+from com.sun.jna import Memory
+from java.nio import ByteBuffer
 
 l = LibdwarfLibrary.INSTANCE
 
@@ -40,7 +43,10 @@ cu = dwarf_new_die(
 )
 print cu
 
-# dwarf_add_AT_name(cu, , r2)
+c = Memory(10)
+c.setChar(0, "a")
 
+# c = ByteBuffer.allocate(10)
+dwarf_add_AT_name(cu, "figlio", r2)
 # if (dwarf_add_AT_name(die, &name[0], &err) == NULL) {
 

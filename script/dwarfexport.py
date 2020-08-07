@@ -53,6 +53,20 @@ class Info:
         self.dbg = Dwarf_P_Debug(self.dbg.value)
 
 
+class Options:
+    def __init__(
+        self, use_dec=False, only_dec_nam_fun=False, att_deb_inf=False, verbose=False
+    ):
+        self.use_decompiler = use_dec
+        self.only_decompile_named_funcs = only_dec_nam_fun
+        self.attach_debug_info = att_deb_inf
+        self.verbose = verbose
+        self.filepath = ""
+        self.filename = ""
+        self.dwarf_source_path = ""
+        self.export_options = 0
+
+
 def add_debug_info(info):
     dbg = info.dbg
     err = info.err
@@ -107,6 +121,7 @@ print DW_DLE_DWARF_INIT_DBG_NULL
 print DW_DLE_HEX_STRING_ERROR
 
 info = Info()
+option = Options(use_dec=True)
 add_debug_info(info)
 
 """

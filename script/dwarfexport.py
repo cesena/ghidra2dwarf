@@ -33,9 +33,6 @@ print DW_DLE_HEX_STRING_ERROR
 dbg_ref = PointerByReference()
 err_ref = PointerByReference()
 
-DW_TAG_compile_unit = 0x11
-DW_FORM_string = 0x08
-
 dwarf_producer_init(DW_DLC_WRITE | DW_DLC_SYMBOLIC_RELOCATIONS | DW_DLC_POINTER64 | DW_DLC_OFFSET32 | DW_DLC_TARGET_LITTLEENDIAN, lambda x: 0, None, None, None, "x86_64", "V2", None, dbg_ref, err_ref)
 
 dbg = Dwarf_P_Debug(dbg_ref.value)

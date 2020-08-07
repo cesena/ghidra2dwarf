@@ -47,7 +47,7 @@ def write_packet(sock, msg):
 def crypt_pwd(pwd, x):
 	return ''.join(chr(b ^ x) for b in bytearray(pwd))
 
-def fancy_eval(code):
+def fancy_eval(code, globals, locals):
 	code_ast = ast.parse(code)
 	last_expr = None
 	print code_ast, code_ast.body
@@ -64,11 +64,11 @@ def fancy_eval(code):
 		old_stderr = sys.stderr
 		sys.stdout = custom_stdout
 		sys.stderr = custom_stdout
-		exec(compile(code_ast, '<string>', 'exec'))
+		exec(compile(code_ast, '<string>', 'exec'), globals, locals)
 		if last_expr:
 			last_expr.lineno = 0
 			last_expr.col_offset = 0
-			out = eval(compile(ast.Expression(last_expr.value), '<string>', 'eval'))
+			out = eval(compile(ast.Expression(last_expr.value), '<string>', 'eval'), globals, locals)
 	except:
 		out = traceback.format_exc()
 	finally:
@@ -88,18 +88,19 @@ class Server:
 		r = randrange(0, 256)
 		print 'rand'
 		write_byte(sock, r)
-		print 'pwd'
 		pwd = read_packet(sock)
+		print 'pwd', pwd
 		if crypt_pwd(pwd, r) != PWD:
 			print 'NOPE!'
 			return
 
 		print 'loop'
+		locals_dict = {}
 		while True:
 			msg = str(read_packet(sock))
 			print 'received:'
 			print msg
-			ret, stdout = fancy_eval(msg)
+			ret, stdout = fancy_eval(msg, globals(), locals_dict)
 			final_out = stdout + str(ret)
 			write_packet(sock, final_out)
 			print final_out

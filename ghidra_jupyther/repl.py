@@ -24,7 +24,7 @@ def write_packet(sock, msg):
     return sock.sendall(msg)
 
 def crypt_pwd(pwd, x):
-    return ''.join(chr(b ^ x) for b in bytearray(pwd))
+    return bytearray(b ^ x for b in bytearray(pwd))
 
 class GhidraJythonRepl:
     def __init__(self):
@@ -32,7 +32,7 @@ class GhidraJythonRepl:
         sock = self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.connect(server_address)
         b = read_byte(sock)
-        write_packet(sock, crypt_pwd(PWD.encode(), b).encode())
+        write_packet(sock, crypt_pwd(PWD.encode(), b))
 
     def repl(self, code):
         sock = self.sock

@@ -14,7 +14,7 @@ I'm lazy, so you'll have to first install [ghidra-jython-kernel](https://github.
 ```bash
 python3 -m pip install ghidra-jython-kernel
 ```
-Then replace the file `repl.py` inside `<python3-dir>/Lib/site-packages/ghidra-jython-kernel` with the one provided in this folder.
+Then replace the files `repl.py` and `kernel.py` inside `<python3-dir>/Lib/site-packages/ghidra-jython-kernel` with the ones provided in this folder.
 
 ### Ghidra script
 Simply copy `jupyther_proxy.py` into the `~/ghidra_scripts` folder.

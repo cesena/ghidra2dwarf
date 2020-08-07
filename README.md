@@ -49,8 +49,7 @@ generate the jar which already includes JNA and the shared library.
 
 ## Use libdwarf in ghidra's jython
 
-This is the [libdwarf-linux](./jar/libdwarf-linux.jar) generated from JNAerator. Now you can
-move this jar inside `~/.ghidra/.${GHIDRA_VERSION}_PUBLIC/plugins`
+Copy the generated [libdwarf.jar](./jar/jnarated/target/libdwarf.jar) inside `~/.ghidra/.${GHIDRA_VERSION}_PUBLIC/plugins`.
 
 Now in ghidra we can access the libdwarf through jython with `import libdwarf`.
 

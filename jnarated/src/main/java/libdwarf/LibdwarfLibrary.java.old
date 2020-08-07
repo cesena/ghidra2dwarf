@@ -9540,6 +9540,12 @@ public interface LibdwarfLibrary extends Library {
 	 * Original signature : <code>Dwarf_P_Attribute dwarf_add_AT_comp_dir(Dwarf_P_Die, char*, Dwarf_Error*)</code><br>
 	 * <i>native declaration : line 4134</i>
 	 */
+	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_comp_dir(LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, String charPtr1, PointerByReference Dwarf_ErrorPtr1);
+	/**
+	 * ownerdie<br>
+	 * Original signature : <code>Dwarf_P_Attribute dwarf_add_AT_comp_dir(Dwarf_P_Die, char*, Dwarf_Error*)</code><br>
+	 * <i>native declaration : line 4134</i>
+	 */
 	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_comp_dir(Pointer Dwarf_P_Die1, Pointer charPtr1, PointerByReference Dwarf_ErrorPtr1);
 	/**
 	 * New December 2018. Preferred version.<br>
@@ -9674,6 +9680,13 @@ public interface LibdwarfLibrary extends Library {
 	 */
 	long dwarf_add_directory_decl(Pointer Dwarf_P_Debug1, Pointer charPtr1, PointerByReference Dwarf_ErrorPtr1);
 	/**
+	 * Producer line creation functions (.debug_line)<br>
+	 * dbg<br>
+	 * Original signature : <code>Dwarf_Unsigned dwarf_add_directory_decl(Dwarf_P_Debug, char*, Dwarf_Error*)</code><br>
+	 * <i>native declaration : line 4170</i>
+	 */
+	long dwarf_add_directory_decl(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, String charPtr1, PointerByReference Dwarf_ErrorPtr1);
+	/**
 	 * New December 2018. Preferred version.<br>
 	 * dbg<br>
 	 * Original signature : <code>int dwarf_add_directory_decl_a(Dwarf_P_Debug, char*, Dwarf_Unsigned*, Dwarf_Error*)</code><br>
@@ -9716,6 +9729,12 @@ public interface LibdwarfLibrary extends Library {
 	 * <i>native declaration : line 4180</i>
 	 */
 	long dwarf_add_file_decl(Pointer Dwarf_P_Debug1, Pointer charPtr1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, long Dwarf_Unsigned3, PointerByReference Dwarf_ErrorPtr1);
+	/**
+	 * dbg<br>
+	 * Original signature : <code>Dwarf_Unsigned dwarf_add_file_decl(Dwarf_P_Debug, char*, Dwarf_Unsigned, Dwarf_Unsigned, Dwarf_Unsigned, Dwarf_Error*)</code><br>
+	 * <i>native declaration : line 4180</i>
+	 */
+	long dwarf_add_file_decl(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, String charPtr1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, long Dwarf_Unsigned3, PointerByReference Dwarf_ErrorPtr1);
 	/**
 	 * New December 2018. Preferred version.<br>
 	 * dbg<br>

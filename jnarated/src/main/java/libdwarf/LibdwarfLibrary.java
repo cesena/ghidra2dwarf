@@ -2152,14 +2152,14 @@ public interface LibdwarfLibrary extends Library {
 	 * Original signature : <code>Dwarf_Unsigned dwarf_add_directory_decl(Dwarf_P_Debug, char*, Dwarf_Error*)</code><br>
 	 * <i>native declaration : line 4170</i>
 	 */
-	long dwarf_add_directory_decl(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, String charPtr1, PointerByReference Dwarf_ErrorPtr1);
+	long dwarf_add_directory_decl(Pointer Dwarf_P_Debug1, Pointer charPtr1, PointerByReference Dwarf_ErrorPtr1);
 	/**
 	 * Producer line creation functions (.debug_line)<br>
 	 * dbg<br>
 	 * Original signature : <code>Dwarf_Unsigned dwarf_add_directory_decl(Dwarf_P_Debug, char*, Dwarf_Error*)</code><br>
 	 * <i>native declaration : line 4170</i>
 	 */
-	long dwarf_add_directory_decl(Pointer Dwarf_P_Debug1, Pointer charPtr1, PointerByReference Dwarf_ErrorPtr1);
+	long dwarf_add_directory_decl(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, String charPtr1, PointerByReference Dwarf_ErrorPtr1);
 				/**
 	 * dbg<br>
 	 * Original signature : <code>Dwarf_Unsigned dwarf_add_file_decl(Dwarf_P_Debug, char*, Dwarf_Unsigned, Dwarf_Unsigned, Dwarf_Unsigned, Dwarf_Error*)</code><br>
@@ -2179,13 +2179,13 @@ public interface LibdwarfLibrary extends Library {
 	 * Original signature : <code>Dwarf_Unsigned dwarf_add_file_decl(Dwarf_P_Debug, char*, Dwarf_Unsigned, Dwarf_Unsigned, Dwarf_Unsigned, Dwarf_Error*)</code><br>
 	 * <i>native declaration : line 4180</i>
 	 */
-	long dwarf_add_file_decl(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, String charPtr1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, long Dwarf_Unsigned3, PointerByReference Dwarf_ErrorPtr1);
+	long dwarf_add_file_decl(Pointer Dwarf_P_Debug1, Pointer charPtr1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, long Dwarf_Unsigned3, PointerByReference Dwarf_ErrorPtr1);
 	/**
 	 * dbg<br>
 	 * Original signature : <code>Dwarf_Unsigned dwarf_add_file_decl(Dwarf_P_Debug, char*, Dwarf_Unsigned, Dwarf_Unsigned, Dwarf_Unsigned, Dwarf_Error*)</code><br>
 	 * <i>native declaration : line 4180</i>
 	 */
-	long dwarf_add_file_decl(Pointer Dwarf_P_Debug1, Pointer charPtr1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, long Dwarf_Unsigned3, PointerByReference Dwarf_ErrorPtr1);
+	long dwarf_add_file_decl(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, String charPtr1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, long Dwarf_Unsigned3, PointerByReference Dwarf_ErrorPtr1);
 										/**
 	 * dbg<br>
 	 * Original signature : <code>Dwarf_Unsigned dwarf_add_line_entry(Dwarf_P_Debug, Dwarf_Unsigned, Dwarf_Addr, Dwarf_Unsigned, Dwarf_Signed, Dwarf_Bool, Dwarf_Bool, Dwarf_Error*)</code><br>

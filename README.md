@@ -1,5 +1,7 @@
 # Ghidra2Dwarf
 
+![](./ghidra2dwarf.png)
+
 Inspired by: [dwarfexport](https://github.com/ALSchwalm/dwarfexport)
 
 ## Build libdwarf

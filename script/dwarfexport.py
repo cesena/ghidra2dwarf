@@ -91,6 +91,12 @@ def add_function(cu, func, linecount, file_index):
     # if dwarf_add_AT_string(dbg, die, DW_AT_linkage_name, f_name, err) == None:
     #     stderr.write("dwarf_add_AT_string error")
 
+    # NOT Working, I don't know why https://github.com/NationalSecurityAgency/ghidra/issues/835
+    f_start = func.getEntryPoint()
+    f_end = func.getBody().getMaxAddress()
+    print f_start
+    print f_end
+
 
 ext_c = lambda s: s + ".c"
 ext_dbg = lambda s: s + ".dbg"

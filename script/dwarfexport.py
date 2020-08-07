@@ -21,37 +21,6 @@ from com.sun.jna import Pointer
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
-l = LibdwarfLibrary.INSTANCE
-curr = getCurrentProgram()
-
-ext_c = lambda s: s + ".c"
-ext_dbg = lambda s: s + ".dbg"
-
-
-class Info:
-    def __init__(self):
-        self.elf = 0
-        self.mode = 8
-        self.dbg = PointerByReference()
-        self.err = PointerByReference()
-        dwarf_producer_init(
-            DW_DLC_WRITE
-            | DW_DLC_SYMBOLIC_RELOCATIONS
-            | DW_DLC_POINTER64
-            | DW_DLC_OFFSET32
-            | DW_DLC_TARGET_LITTLEENDIAN,
-            lambda x: 0,
-            None,
-            None,
-            None,
-            "x86_64",
-            "V2",
-            None,
-            self.dbg,
-            self.err,
-        )
-        self.dbg = Dwarf_P_Debug(self.dbg.value)
-
 
 class Options:
     def __init__(
@@ -67,13 +36,11 @@ class Options:
         self.export_options = 0
 
 
-def add_debug_info(info):
-    dbg = info.dbg
-    err = info.err
+def add_debug_info():
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string, err)
     cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None, err)
     print cu
-    dwarf_add_AT_name(cu, ext_c(curr.name), info.err)
+    dwarf_add_AT_name(cu, ext_c(curr.name), err)
     dir_index = dwarf_add_directory_decl(dbg, ext_dbg(curr.name), err)
     file_index = dwarf_add_file_decl(dbg, ext_c(curr.name), dir_index, 0, 0, err)
     print dir_index
@@ -96,16 +63,14 @@ def add_debug_info(info):
     fm = curr.getFunctionManager()
     funcs = fm.getFunctions(True)
     for f in funcs:
-        add_function(info, cu, f, 1, file_index)
+        add_function(cu, f, 1, file_index)
         pass
         # add_function()
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
 
 
-def add_function(info, cu, func, linecount, file_index):
-    dbg = info.dbg
-    err = info.err
+def add_function(cu, func, linecount, file_index):
     die = dwarf_new_die(dbg, DW_TAG_subprogram, cu, None, None, None, err)
     loc_expr = dwarf_new_expr(dbg, err)
     # I don't know if it is linecount - 1 or what
@@ -113,6 +78,11 @@ def add_function(info, cu, func, linecount, file_index):
         print "error"
 
 
+ext_c = lambda s: s + ".c"
+ext_dbg = lambda s: s + ".dbg"
+
+l = LibdwarfLibrary.INSTANCE
+curr = getCurrentProgram()
 g = globals()
 for i in LibdwarfLibrary.__dict__.keys():
     g[i] = getattr(l, i)
@@ -120,24 +90,25 @@ for i in LibdwarfLibrary.__dict__.keys():
 print DW_DLE_DWARF_INIT_DBG_NULL
 print DW_DLE_HEX_STRING_ERROR
 
-info = Info()
-option = Options(use_dec=True)
-add_debug_info(info)
-
-"""
-dbg_ref = PointerByReference()
-err_ref = PointerByReference()
-
-dwarf_producer_init(DW_DLC_WRITE | DW_DLC_SYMBOLIC_RELOCATIONS | DW_DLC_POINTER64 | DW_DLC_OFFSET32 | DW_DLC_TARGET_LITTLEENDIAN, lambda x: 0, None, None, None, "x86_64", "V2", None, dbg_ref, err_ref)
-
-dbg = Dwarf_P_Debug(dbg_ref.value)
-
-dwarf_pro_set_default_string_form(dbg, DW_FORM_string, err_ref);
-
-cu = dwarf_new_die(
-    dbg, DW_TAG_compile_unit, None, None, None, None, err_ref
+dbg = PointerByReference()
+err = PointerByReference()
+dwarf_producer_init(
+    DW_DLC_WRITE
+    | DW_DLC_SYMBOLIC_RELOCATIONS
+    | DW_DLC_POINTER64
+    | DW_DLC_OFFSET32
+    | DW_DLC_TARGET_LITTLEENDIAN,
+    lambda x: 0,
+    None,
+    None,
+    None,
+    "x86_64",
+    "V2",
+    None,
+    dbg,
+    err,
 )
-print cu
+dbg = Dwarf_P_Debug(dbg.value)
+option = Options(use_dec=True)
+add_debug_info()
 
-dwarf_add_AT_name(cu, "kek", err_ref)
-"""

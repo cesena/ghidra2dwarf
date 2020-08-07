@@ -21,6 +21,8 @@ from com.sun.jna import Pointer
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
+from sys import stderr
+
 
 class Options:
     def __init__(
@@ -40,12 +42,12 @@ def add_debug_info():
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string, err)
     cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None, err)
     print cu
-    dwarf_add_AT_name(cu, ext_c(curr.name), err)
-    dir_index = dwarf_add_directory_decl(dbg, ext_dbg(curr.name), err)
-    file_index = dwarf_add_file_decl(dbg, ext_c(curr.name), dir_index, 0, 0, err)
-    print dir_index
-    print file_index
-    dwarf_add_AT_comp_dir(cu, ext_dbg(curr.name), err)
+    if options.use_decompiler:
+        if dwarf_add_AT_name(cu, ext_c(curr.name), err) == None:
+            stderr.write("dwarf_add_AT_name error")
+        dir_index = dwarf_add_directory_decl(dbg, ext_dbg(curr.name), err)
+        file_index = dwarf_add_file_decl(dbg, ext_c(curr.name), dir_index, 0, 0, err)
+        dwarf_add_AT_comp_dir(cu, ext_dbg(curr.name), err)
     # memory = curr.getMemory()
     # Get sections
     # memory.getBlocks()
@@ -58,12 +60,13 @@ def add_debug_info():
 
     # However we can omit this step and directly decompile all functions
 
+    linecount = 1
     ifc = DecompInterface()
     ifc.openProgram(curr)
     fm = curr.getFunctionManager()
     funcs = fm.getFunctions(True)
     for f in funcs:
-        add_function(cu, f, 1, file_index)
+        add_function(cu, f, linecount, file_index)
         pass
         # add_function()
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
@@ -72,10 +75,21 @@ def add_debug_info():
 
 def add_function(cu, func, linecount, file_index):
     die = dwarf_new_die(dbg, DW_TAG_subprogram, cu, None, None, None, err)
+    if die == None:
+        stderr.write("dwarf_new_die error")
     loc_expr = dwarf_new_expr(dbg, err)
     # I don't know if it is linecount - 1 or what
     if dwarf_add_expr_gen(loc_expr, DW_OP_call_frame_cfa, 0, 0, err) == linecount - 1:
-        print "error"
+        stderr.write("dwarf_add_expr_gen error")
+    if dwarf_add_AT_location_expr(dbg, die, DW_AT_frame_base, loc_expr, err) == None:
+        stderr.write("dwarf_add_AT_location_expr error")
+    # TODO: Understand difference between c_name and mangled_name
+    f_name = func.name
+    print f_name
+    if dwarf_add_AT_name(die, f_name, err) == None:
+        stderr.write("dwarf_add_AT_name error")
+    # if dwarf_add_AT_string(dbg, die, DW_AT_linkage_name, f_name, err) == None:
+    #     stderr.write("dwarf_add_AT_string error")
 
 
 ext_c = lambda s: s + ".c"
@@ -109,6 +123,6 @@ dwarf_producer_init(
     err,
 )
 dbg = Dwarf_P_Debug(dbg.value)
-option = Options(use_dec=True)
+options = Options(use_dec=True)
 add_debug_info()
 

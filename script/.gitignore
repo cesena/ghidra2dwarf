@@ -1,0 +1,4 @@
+*.gpr
+*.rep
+ghidra/
+./ghidra_builtins.pyi

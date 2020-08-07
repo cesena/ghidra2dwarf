@@ -64,6 +64,28 @@ def add_debug_info(info):
     file_index = dwarf_add_file_decl(dbg, ext_c(curr.name), dir_index, 0, 0, err)
     print dir_index
     print file_index
+    # dwarf_add_AT_comp_dir(cu, ext_dbg(curr.name), err)
+    # memory = curr.getMemory()
+    # Get sections
+    # memory.getBlocks()
+
+    # Get segments
+    # memory.getLoadedAndInitializedAddressSet()
+
+    # Get executable segments
+    # list(memory.getExecuteSet().getAddressRanges())
+
+    # However we can omit this step and directly decompile all functions
+
+    ifc = DecompInterface()
+    ifc.openProgram(curr)
+    fm = curr.getFunctionManager()
+    funcs = fm.getFunctions(True)
+    for f in funcs:
+        pass
+        # add_function()
+        # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
+        # print (results.getDecompiledFunction().getC())
 
 
 g = globals()

@@ -24,9 +24,9 @@ def write_byte(sock, b):
 	return sock.send(chr(b))
 
 def read_packet(sock):
-	print 'read_packet'
+	#print 'read_packet'
 	toread = struct.unpack('<l', sock.recv(4))[0]
-	print 'packet_len:', toread
+	#print 'packet_len:', toread
 	buf = bytearray()
 	while len(buf) < toread:
 		bb = sock.recv(toread)
@@ -112,7 +112,8 @@ class Server:
 def client(sock):
 	b = read_byte(sock)
 	write_packet(sock, crypt_pwd(PWD, b))
-	write_packet(sock, 'a=1\nprint "test"\nfor i in range(10): a+=2\na+666')
+	write_packet(sock, open(sys.argv[2], 'rb').read())
+	#write_packet(sock, 'a=1\nprint "test"\nfor i in range(10): a+=2\na+666')
 	out = read_packet(sock)
 	print out
 

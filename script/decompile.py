@@ -1,4 +1,4 @@
-# Add symbols to ELF file
+# Decompile all functions
 # @author meowmeowxw
 # @category _NEW_
 # @keybinding

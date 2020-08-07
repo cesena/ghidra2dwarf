@@ -64,7 +64,7 @@ def add_debug_info(info):
     file_index = dwarf_add_file_decl(dbg, ext_c(curr.name), dir_index, 0, 0, err)
     print dir_index
     print file_index
-    # dwarf_add_AT_comp_dir(cu, ext_dbg(curr.name), err)
+    dwarf_add_AT_comp_dir(cu, ext_dbg(curr.name), err)
     # memory = curr.getMemory()
     # Get sections
     # memory.getBlocks()
@@ -82,10 +82,21 @@ def add_debug_info(info):
     fm = curr.getFunctionManager()
     funcs = fm.getFunctions(True)
     for f in funcs:
+        add_function(info, cu, f, 1, file_index)
         pass
         # add_function()
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
+
+
+def add_function(info, cu, func, linecount, file_index):
+    dbg = info.dbg
+    err = info.err
+    die = dwarf_new_die(dbg, DW_TAG_subprogram, cu, None, None, None, err)
+    loc_expr = dwarf_new_expr(dbg, err)
+    # I don't know if it is linecount - 1 or what
+    if dwarf_add_expr_gen(loc_expr, DW_OP_call_frame_cfa, 0, 0, err) == linecount - 1:
+        print "error"
 
 
 g = globals()

@@ -24,6 +24,9 @@ from java.nio import ByteBuffer
 l = LibdwarfLibrary.INSTANCE
 curr = getCurrentProgram()
 
+ext_c = lambda s: s + ".c"
+ext_dbg = lambda s: s + ".dbg"
+
 
 class Info:
     def __init__(self):
@@ -56,9 +59,9 @@ def add_debug_info(info):
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string, err)
     cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None, err)
     print cu
-    dwarf_add_AT_name(cu, curr.name + ".c", info.err)
-    dir_index = dwarf_add_directory_decl(dbg, curr.name + ".dbg", err)
-    file_index = dwarf_add_file_decl(dbg, curr.name + ".c", dir_index, 0, 0, err)
+    dwarf_add_AT_name(cu, ext_c(curr.name), info.err)
+    dir_index = dwarf_add_directory_decl(dbg, ext_dbg(curr.name), err)
+    file_index = dwarf_add_file_decl(dbg, ext_c(curr.name), dir_index, 0, 0, err)
     print dir_index
     print file_index
 

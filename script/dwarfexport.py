@@ -30,23 +30,21 @@ for i in LibdwarfLibrary.__dict__.keys():
 print DW_DLE_DWARF_INIT_DBG_NULL
 print DW_DLE_HEX_STRING_ERROR
 
-d = Dwarf_P_Debug()
-r1 = PointerByReference(d.pointer)
-r2 = PointerByReference()
+dbg_ref = PointerByReference()
+err_ref = PointerByReference()
 
 DW_TAG_compile_unit = 0x11
+DW_FORM_string = 0x08
 
-dwarf_producer_init(DW_DLC_WRITE | DW_DLC_SYMBOLIC_RELOCATIONS | DW_DLC_POINTER64 | DW_DLC_OFFSET32 | DW_DLC_TARGET_LITTLEENDIAN, lambda x: 0, None, None, None, "x86_64", "V2", None, r1, r2)
+dwarf_producer_init(DW_DLC_WRITE | DW_DLC_SYMBOLIC_RELOCATIONS | DW_DLC_POINTER64 | DW_DLC_OFFSET32 | DW_DLC_TARGET_LITTLEENDIAN, lambda x: 0, None, None, None, "x86_64", "V2", None, dbg_ref, err_ref)
+
+dbg = Dwarf_P_Debug(dbg_ref.value)
+
+dwarf_pro_set_default_string_form(dbg, DW_FORM_string, err_ref);
 
 cu = dwarf_new_die(
-    d, DW_TAG_compile_unit, None, None, None, None, r2
+    dbg, DW_TAG_compile_unit, None, None, None, None, err_ref
 )
 print cu
 
-c = Memory(10)
-c.setChar(0, "a")
-
-# c = ByteBuffer.allocate(10)
-dwarf_add_AT_name(cu, "figlio", r2)
-# if (dwarf_add_AT_name(die, &name[0], &err) == NULL) {
-
+dwarf_add_AT_name(cu, "kek", err_ref)

@@ -2097,6 +2097,12 @@ public interface LibdwarfLibrary extends Library {
 	 * Original signature : <code>Dwarf_P_Attribute dwarf_add_AT_comp_dir(Dwarf_P_Die, char*, Dwarf_Error*)</code><br>
 	 * <i>native declaration : line 4134</i>
 	 */
+	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_comp_dir(LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, String charPtr1, PointerByReference Dwarf_ErrorPtr1);
+	/**
+	 * ownerdie<br>
+	 * Original signature : <code>Dwarf_P_Attribute dwarf_add_AT_comp_dir(Dwarf_P_Die, char*, Dwarf_Error*)</code><br>
+	 * <i>native declaration : line 4134</i>
+	 */
 	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_comp_dir(Pointer Dwarf_P_Die1, Pointer charPtr1, PointerByReference Dwarf_ErrorPtr1);
 				/**
 	 * die<br>

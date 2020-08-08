@@ -1809,6 +1809,8 @@ public interface LibdwarfLibrary extends Library {
 	public static final int DW_CHILDREN_yes = (int)0x01;
 	public static final int DW_ADDR_none = (int)0;
 
+	public static final long DW_DLV_NOCOUNT = -1;
+
 
 	public interface Dwarf_Handler extends Callback {
 		/** @param Dwarf_Error1 errarg */

@@ -142,7 +142,8 @@ def add_function(cu, func, linecount, file_index):
     # Check for functions inside executable segments
     for s in curr.memory.executeSet.addressRanges:
         if f_start.offset >= s.minAddress.offset and f_end.offset <= s.maxAddress.offset:
-            print f_start, f_end, func.returnType.description
+            t = func.returnType
+            print f_start, f_end, func.returnType.description, func.name
     # add_type(cu, func.returnType.description)
 
 
@@ -162,6 +163,11 @@ def add_struct_type(cu, t):
     if dwarf_add_AT_name(die, t.name, err) == None:
         stderr.write("dwarf_add_AT_name error")
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err)
+    for s in curr.dataTypeManager.allStructures:
+        if s.name == t.name:
+            for x in a.components:
+                # add_type(x.dataType)
+                pass
 
 
 ext_c = lambda s: s + ".c"

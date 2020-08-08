@@ -5,6 +5,9 @@
 #@menupath 
 #@toolbar 
 
+orig_globals = {k: v for k, v in globals().iteritems()}
+orig_locals = {k: v for k, v in locals().iteritems()}
+
 import socket
 import threading
 import struct
@@ -24,13 +27,15 @@ def write_byte(sock, b):
 	return sock.send(chr(b))
 
 def read_packet(sock):
-	#print 'read_packet'
+	print 'read_packet'
 	toread = struct.unpack('<l', sock.recv(4))[0]
-	#print 'packet_len:', toread
+	print 'packet_len:', toread
 	buf = bytearray()
-	while len(buf) < toread:
+	while toread:
 		bb = sock.recv(toread)
 		buf.extend(bb)
+		toread -= len(bb)
+		print 'read:', len(bb), toread
 	# jython is retarded
 	'''buf = bytearray(toread)
 	view = memoryview(buf)
@@ -42,7 +47,12 @@ def read_packet(sock):
 
 def write_packet(sock, msg):
 	sock.sendall(struct.pack('<l', len(msg)))
-	return sock.sendall(msg)
+	tosend = len(msg)
+	while tosend:
+		sent = sock.send(msg)
+		msg = msg[sent:]
+		tosend -= sent
+	#return sock.sendall(msg)
 
 def crypt_pwd(pwd, x):
 	return ''.join(chr(b ^ x) for b in bytearray(pwd))
@@ -64,11 +74,11 @@ def fancy_eval(code, globals, locals):
 		old_stderr = sys.stderr
 		sys.stdout = custom_stdout
 		sys.stderr = custom_stdout
-		exec(compile(code_ast, '<string>', 'exec'), globals, locals)
+		exec(compile(code_ast, '<string>', 'exec'), globals)
 		if last_expr:
 			last_expr.lineno = 0
 			last_expr.col_offset = 0
-			out = eval(compile(ast.Expression(last_expr.value), '<string>', 'eval'), globals, locals)
+			out = eval(compile(ast.Expression(last_expr.value), '<string>', 'eval'), globals)
 	except:
 		out = traceback.format_exc()
 	finally:
@@ -94,13 +104,14 @@ class Server:
 			print 'NOPE!'
 			return
 
+		dict_globals = {k: v for k, v in orig_globals.iteritems()}
+		dict_locals = {k: v for k, v in orig_locals.iteritems()}
 		print 'loop'
-		locals_dict = {}
 		while True:
 			msg = str(read_packet(sock))
 			print 'received:'
 			print msg
-			ret, stdout = fancy_eval(msg, globals(), locals_dict)
+			ret, stdout = fancy_eval(msg, dict_globals, dict_locals)
 			final_out = stdout + str(ret)
 			write_packet(sock, final_out)
 			print final_out
@@ -136,6 +147,7 @@ elif mode == 'server':
 		try:
 			Server(sock.accept()).start()
 		except:
+			print traceback.format_exc()
 			pass
 else:
 	print 'NOPE'

@@ -13,6 +13,7 @@ except:
 
 from ghidra.app.decompiler import DecompInterface, DecompileOptions
 from ghidra.app.util.bin.format.elf import ElfSymbolTable
+from ghidra.app.decompiler.component import DecompilerUtils
 
 from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference
@@ -70,7 +71,7 @@ def generate_decomp_interface():
     opts.grabFromProgram(curr)
     decompiler.setOptions(opts)
     decompiler.toggleCCode(True)
-    decompiler.toggleSyntaxTree(False)
+    decompiler.toggleSyntaxTree(True)
 
     # - decompile -- The main decompiler action
     # - normalize -- Decompilation tuned for normalization
@@ -91,22 +92,29 @@ def get_decompiled_variables(decomp):
     hf = decomp.highFunction
     for s in hf.localSymbolMap.symbols:
         hv = s.highVariable
-        yield s.name, s.PCAddress, hv.dataType, hv.storage
+        yield s.name, hv.dataType, s.PCAddress, hv.storage
 
 
-def add_decompiler_func_info(cu, func_die, func):
+def add_decompiler_func_info(cu, func_die, func, source_file_dwarfindex):
     # https://ghidra.re/ghidra_docs/api/ghidra/app/decompiler/DecompileResults.html
     # print func.allVariables
     decomp = get_decompiled_function(func)
-    for name, addr, datatype, storage in get_decompiled_variables(decomp):
-        print name, addr, datatype, storage
+    for name, datatype, addr, storage in get_decompiled_variables(decomp):
+        print name, datatype, addr, storage
+        # add_variable(cu, name, datatype, addr, storage)
 
     cmarkup = decomp.CCodeMarkup
-    l = []
-    cmarkup.flatten(l)
-    for x in l:
-        # print x.numChildren
-        pass
+    # TODO: implement our own pretty printer?
+    # https://github.com/NationalSecurityAgency/ghidra/blob/master/Ghidra/Features/Decompiler/src/main/java/ghidra/app/decompiler/PrettyPrinter.java
+    lines = DecompilerUtils.toLines(cmarkup)
+    for l in lines:
+        # TODO: multiple lines might have the same lowest address
+        addresses = [t.minAddress for t in l.allTokens if t.minAddress]
+        lowest_addr = min(addresses) if addresses else None
+        print lowest_addr, l
+        # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
+        # dwarf_add_line_entry(dbg, source_file_dwarfindex, 
+        #     lowest_addr, l.lineNumber, 0, True, False, err)
 
 
 def get_functions():
@@ -138,12 +146,12 @@ def add_function(cu, func, linecount, file_index):
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
     if f_name == "main":
-        add_decompiler_func_info(cu, die, func)
+        add_decompiler_func_info(cu, die, func, 0)
     # Check for functions inside executable segments
     for s in curr.memory.executeSet.addressRanges:
         if f_start.offset >= s.minAddress.offset and f_end.offset <= s.maxAddress.offset:
             t = func.returnType
-            print f_start, f_end, func.returnType.description, func.name
+            #print f_start, f_end, func.returnType.description, func.name
     # add_type(cu, func.returnType.description)
 
 

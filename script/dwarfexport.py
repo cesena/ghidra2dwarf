@@ -61,16 +61,22 @@ def add_debug_info():
     # However we can omit this step and directly decompile all functions
 
     linecount = 1
-    ifc = DecompInterface()
-    ifc.openProgram(curr)
-    fm = curr.functionManager
-    funcs = fm.getFunctions(True)
-    for f in funcs:
+    for f in get_functions():
         add_function(cu, f, linecount, file_index)
         pass
         # add_function()
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
+
+
+def get_functions():
+    fm = curr.functionManager
+    funcs = fm.getFunctions(True)
+    return funcs
+
+
+def get_function_range(func):
+    return (func.entryPoint, func.body.maxAddress)
 
 
 def add_function(cu, func, linecount, file_index):
@@ -92,8 +98,7 @@ def add_function(cu, func, linecount, file_index):
         stderr.write("dwarf_add_AT_string error")
 
     # TODO: Check for multiple ranges
-    f_start = func.entryPoint
-    f_end = func.body.maxAddress
+    f_start, f_end = get_function_range(func)
     print f_start
     print f_end
     print "\n"

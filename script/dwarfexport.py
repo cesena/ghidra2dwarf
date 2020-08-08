@@ -63,7 +63,7 @@ def add_debug_info():
     linecount = 1
     ifc = DecompInterface()
     ifc.openProgram(curr)
-    fm = curr.getFunctionManager()
+    fm = curr.functionManager
     funcs = fm.getFunctions(True)
     for f in funcs:
         add_function(cu, f, linecount, file_index)
@@ -79,7 +79,7 @@ def add_function(cu, func, linecount, file_index):
         stderr.write("dwarf_new_die error")
     loc_expr = dwarf_new_expr(dbg, err)
     # I don't know if it is linecount - 1 or what
-    if dwarf_add_expr_gen(loc_expr, DW_OP_call_frame_cfa, 0, 0, err) == linecount - 1:
+    if dwarf_add_expr_gen(loc_expr, DW_OP_call_frame_cfa, 0, 0, err) == DW_DLV_NOCOUNT:
         stderr.write("dwarf_add_expr_gen error")
     if dwarf_add_AT_location_expr(dbg, die, DW_AT_frame_base, loc_expr, err) == None:
         stderr.write("dwarf_add_AT_location_expr error")
@@ -88,14 +88,15 @@ def add_function(cu, func, linecount, file_index):
     print f_name
     if dwarf_add_AT_name(die, f_name, err) == None:
         stderr.write("dwarf_add_AT_name error")
-    # if dwarf_add_AT_string(dbg, die, DW_AT_linkage_name, f_name, err) == None:
-    #     stderr.write("dwarf_add_AT_string error")
+    if dwarf_add_AT_string(dbg, die, DW_AT_linkage_name, f_name, err) == None:
+        stderr.write("dwarf_add_AT_string error")
 
-    # NOT Working, I don't know why https://github.com/NationalSecurityAgency/ghidra/issues/835
-    f_start = func.getEntryPoint()
-    f_end = func.getBody().getMaxAddress()
+    # TODO: Check for multiple ranges
+    f_start = func.entryPoint
+    f_end = func.body.maxAddress
     print f_start
     print f_end
+    print "\n"
 
 
 ext_c = lambda s: s + ".c"

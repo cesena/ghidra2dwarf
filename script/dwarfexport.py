@@ -63,8 +63,6 @@ def add_debug_info():
     linecount = 1
     for f in get_functions():
         add_function(cu, f, linecount, file_index)
-        pass
-        # add_function()
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
 
@@ -99,9 +97,28 @@ def add_function(cu, func, linecount, file_index):
 
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
-    print f_start
-    print f_end
-    print "\n"
+    # Check for functions inside executable segments
+    for s in curr.memory.getExecuteSet().getAddressRanges():
+        if (
+            f_start.offset >= s.minAddress.offset
+            and f_end.offset <= s.maxAddress.offset
+        ):
+            print f_start
+            print f_end
+            print func.returnType.description
+            print "\n"
+    # add_type(cu, func.returnType.description)
+
+
+def add_ptr_type(cu, t):
+    assert "pointer" in t
+    die = dwarf_new_die(dbg, DW_TAG_compile_unit, cu, None, None, None, err)
+
+    # TODO: Add without pointer, Why?
+    # dwarf_add_AT_reference(dbg, die, DW_AT_type, )
+    if dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, 8, err) == None:
+        stderr.write("dwarf_add_AT_unsigned_const error")
+    return die
 
 
 ext_c = lambda s: s + ".c"

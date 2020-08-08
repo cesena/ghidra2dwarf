@@ -58,7 +58,10 @@ def crypt_pwd(pwd, x):
 	return ''.join(chr(b ^ x) for b in bytearray(pwd))
 
 def fancy_eval(code, globals, locals):
-	code_ast = ast.parse(code)
+	try:
+		code_ast = ast.parse(code)
+	except:
+		return traceback.format_exc(), ''
 	last_expr = None
 	print code_ast, code_ast.body
 	if type(code_ast.body[-1]) == ast.Expr:

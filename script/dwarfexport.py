@@ -82,8 +82,10 @@ def generate_decomp_interface():
     decompiler.openProgram(curr)
     return decompiler
 
+
 def get_decompiled_function(func):
     return decompiler.decompileFunction(func, 0, monitor)
+
 
 def get_decompiled_variables(decomp):
     hf = decomp.highFunction
@@ -91,9 +93,10 @@ def get_decompiled_variables(decomp):
         hv = s.highVariable
         yield s.name, s.PCAddress, hv.dataType, hv.storage
 
+
 def add_decompiler_func_info(cu, func_die, func):
     # https://ghidra.re/ghidra_docs/api/ghidra/app/decompiler/DecompileResults.html
-    print func.allVariables
+    # print func.allVariables
     decomp = get_decompiled_function(func)
     for name, addr, datatype, storage in get_decompiled_variables(decomp):
         print name, addr, datatype, storage
@@ -102,8 +105,8 @@ def add_decompiler_func_info(cu, func_die, func):
     l = []
     cmarkup.flatten(l)
     for x in l:
-        print x.numChildren
-        
+        # print x.numChildren
+        pass
 
 
 def get_functions():
@@ -134,17 +137,17 @@ def add_function(cu, func, linecount, file_index):
 
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
-    if f_name == 'main':
+    if f_name == "main":
         add_decompiler_func_info(cu, die, func)
     # Check for functions inside executable segments
-    '''for s in curr.memory.executeSet.addressRanges:
+    for s in curr.memory.executeSet.addressRanges:
         if f_start.offset >= s.minAddress.offset and f_end.offset <= s.maxAddress.offset:
-            print f_start, f_end, func.returnType.description'''
+            print f_start, f_end, func.returnType.description
     # add_type(cu, func.returnType.description)
 
 
 def add_ptr_type(cu, t):
-    assert "pointer" in t
+    assert "pointer" in t.description
     die = dwarf_new_die(dbg, DW_TAG_compile_unit, cu, None, None, None, err)
 
     # TODO: Add without pointer, Why?
@@ -152,6 +155,13 @@ def add_ptr_type(cu, t):
     if dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, 8, err) == None:
         stderr.write("dwarf_add_AT_unsigned_const error")
     return die
+
+
+def add_struct_type(cu, t):
+    die = dwarf_new_die(dbg, DW_TAG_structure_type, cu, None, None, None, err)
+    if dwarf_add_AT_name(die, t.name, err) == None:
+        stderr.write("dwarf_add_AT_name error")
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err)
 
 
 ext_c = lambda s: s + ".c"

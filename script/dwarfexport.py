@@ -25,9 +25,7 @@ from sys import stderr
 
 
 class Options:
-    def __init__(
-        self, use_dec=False, only_dec_nam_fun=False, att_deb_inf=False, verbose=False
-    ):
+    def __init__(self, use_dec=False, only_dec_nam_fun=False, att_deb_inf=False, verbose=False):
         self.use_decompiler = use_dec
         self.only_decompile_named_funcs = only_dec_nam_fun
         self.attach_debug_info = att_deb_inf
@@ -89,7 +87,6 @@ def add_function(cu, func, linecount, file_index):
         stderr.write("dwarf_add_AT_location_expr error")
     # TODO: Understand difference between c_name and mangled_name
     f_name = func.name
-    print f_name
     if dwarf_add_AT_name(die, f_name, err) == None:
         stderr.write("dwarf_add_AT_name error")
     if dwarf_add_AT_string(dbg, die, DW_AT_linkage_name, f_name, err) == None:
@@ -98,15 +95,9 @@ def add_function(cu, func, linecount, file_index):
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
     # Check for functions inside executable segments
-    for s in curr.memory.getExecuteSet().getAddressRanges():
-        if (
-            f_start.offset >= s.minAddress.offset
-            and f_end.offset <= s.maxAddress.offset
-        ):
-            print f_start
-            print f_end
-            print func.returnType.description
-            print "\n"
+    for s in curr.memory.executeSet.addressRanges:
+        if f_start.offset >= s.minAddress.offset and f_end.offset <= s.maxAddress.offset:
+            print f_start, f_end, func.returnType.description
     # add_type(cu, func.returnType.description)
 
 

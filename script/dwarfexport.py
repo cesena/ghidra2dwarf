@@ -163,11 +163,9 @@ def add_struct_type(cu, t):
     if dwarf_add_AT_name(die, t.name, err) == None:
         stderr.write("dwarf_add_AT_name error")
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err)
-    for s in curr.dataTypeManager.allStructures:
-        if s.name == t.name:
-            for x in a.components:
-                # add_type(x.dataType)
-                pass
+    for c in t.dataType.components:
+        print c.dataType
+        pass
 
 
 ext_c = lambda s: s + ".c"

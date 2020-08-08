@@ -12,6 +12,6 @@ fi
 #remove gpr and rep files first (CAREFUL!)
 rm -rf *.gpr *.rep
 
-time $GHIDRA_PATH/support/analyzeHeadless . test -import $1 -noanalysis -postscript ./dwarfexport.py
+time $GHIDRA_PATH/support/analyzeHeadless . test -import $1 -postscript ./dwarfexport.py
 
 

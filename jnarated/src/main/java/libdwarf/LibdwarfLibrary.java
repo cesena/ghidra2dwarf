@@ -2079,6 +2079,12 @@ public interface LibdwarfLibrary extends Library {
 	 * Original signature : <code>Dwarf_P_Attribute dwarf_add_AT_string(Dwarf_P_Debug, Dwarf_P_Die, Dwarf_Half, char*, Dwarf_Error*)</code><br>
 	 * <i>native declaration : line 4029</i>
 	 */
+	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_string(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, short Dwarf_Half1, String charPtr1, PointerByReference Dwarf_ErrorPtr1);
+	/**
+	 * dbg<br>
+	 * Original signature : <code>Dwarf_P_Attribute dwarf_add_AT_string(Dwarf_P_Debug, Dwarf_P_Die, Dwarf_Half, char*, Dwarf_Error*)</code><br>
+	 * <i>native declaration : line 4029</i>
+	 */
 	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_string(Pointer Dwarf_P_Debug1, Pointer Dwarf_P_Die1, short Dwarf_Half1, Pointer charPtr1, PointerByReference Dwarf_ErrorPtr1);
 																																														/**
 	 * ownerdie<br>

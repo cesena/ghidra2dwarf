@@ -11,8 +11,7 @@ except:
     pass
 
 
-from ghidra.app.decompiler import DecompInterface
-from ghidra.util.task import ConsoleTaskMonitor
+from ghidra.app.decompiler import DecompInterface, DecompileOptions
 from ghidra.app.util.bin.format.elf import ElfSymbolTable
 
 from libdwarf import LibdwarfLibrary
@@ -65,6 +64,48 @@ def add_debug_info():
         # print (results.getDecompiledFunction().getC())
 
 
+def generate_decomp_interface():
+    decompiler = DecompInterface()
+    opts = DecompileOptions()
+    opts.grabFromProgram(curr)
+    decompiler.setOptions(opts)
+    decompiler.toggleCCode(True)
+    decompiler.toggleSyntaxTree(False)
+
+    # - decompile -- The main decompiler action
+    # - normalize -- Decompilation tuned for normalization
+    # - jumptable -- Simplify just enough to recover a jump-table
+    # - paramid   -- Simplify enough to recover function parameters
+    # - register  -- Perform one analysis pass on registers, without stack variables
+    # - firstpass -- Construct the initial raw syntax tree, with no simplification
+    decompiler.setSimplificationStyle("decompile")
+    decompiler.openProgram(curr)
+    return decompiler
+
+def get_decompiled_function(func):
+    return decompiler.decompileFunction(func, 0, monitor)
+
+def get_decompiled_variables(decomp):
+    hf = decomp.highFunction
+    for s in hf.localSymbolMap.symbols:
+        hv = s.highVariable
+        yield s.name, s.PCAddress, hv.dataType, hv.storage
+
+def add_decompiler_func_info(cu, func_die, func):
+    # https://ghidra.re/ghidra_docs/api/ghidra/app/decompiler/DecompileResults.html
+    print func.allVariables
+    decomp = get_decompiled_function(func)
+    for name, addr, datatype, storage in get_decompiled_variables(decomp):
+        print name, addr, datatype, storage
+
+    cmarkup = decomp.CCodeMarkup
+    l = []
+    cmarkup.flatten(l)
+    for x in l:
+        print x.numChildren
+        
+
+
 def get_functions():
     fm = curr.functionManager
     funcs = fm.getFunctions(True)
@@ -80,7 +121,6 @@ def add_function(cu, func, linecount, file_index):
     if die == None:
         stderr.write("dwarf_new_die error")
     loc_expr = dwarf_new_expr(dbg, err)
-    # I don't know if it is linecount - 1 or what
     if dwarf_add_expr_gen(loc_expr, DW_OP_call_frame_cfa, 0, 0, err) == DW_DLV_NOCOUNT:
         stderr.write("dwarf_add_expr_gen error")
     if dwarf_add_AT_location_expr(dbg, die, DW_AT_frame_base, loc_expr, err) == None:
@@ -94,10 +134,12 @@ def add_function(cu, func, linecount, file_index):
 
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
+    if f_name == 'main':
+        add_decompiler_func_info(cu, die, func)
     # Check for functions inside executable segments
-    for s in curr.memory.executeSet.addressRanges:
+    '''for s in curr.memory.executeSet.addressRanges:
         if f_start.offset >= s.minAddress.offset and f_end.offset <= s.maxAddress.offset:
-            print f_start, f_end, func.returnType.description
+            print f_start, f_end, func.returnType.description'''
     # add_type(cu, func.returnType.description)
 
 
@@ -117,6 +159,7 @@ ext_dbg = lambda s: s + ".dbg"
 
 l = LibdwarfLibrary.INSTANCE
 curr = getCurrentProgram()
+decompiler = generate_decomp_interface()
 g = globals()
 for i in LibdwarfLibrary.__dict__.keys():
     g[i] = getattr(l, i)

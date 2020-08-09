@@ -183,25 +183,26 @@ def add_function(cu, func, linecount, file_index):
     return die
 
 
+def add_default_type(cu, t):
+    die = dwarf_new_die(dbg, DW_TAG_base_type, cu, None, None, None, err)
+    dwarf_add_AT_name(die, t.name, err)
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err)
+    return die
+
+
 def add_type(cu, t):
     if isinstance(t, Pointer):
-        # print type(t), t
         return add_ptr_type(cu, t)
     elif isinstance(t, DefaultDataType):
-        # TODO: an example of DefaultDataType is `undefined`
-        return None
+        # TODO: an example of DefaultDataType is `undefined`, The following line is not definitive
+        return add_default_type(cu, t)
     elif isinstance(t, BuiltInDataType):
-        # TODO: an example of BuiltInDataType is `int`
-        return None
+        return add_default_type(cu, t)
     elif isinstance(t, Structure):
-        # print type(t), t
         return add_struct_type(cu, t)
     else:
         try:
-            die = dwarf_new_die(dbg, DW_TAG_base_type, cu, None, None, None, err)
-            dwarf_add_AT_name(die, type.name, err)
-            dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, type.length, err)
-            return die
+            return add_default_type(cu, t)
         except:
             raise Exception(("ERR type:", type(t), t))
         return None

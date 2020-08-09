@@ -163,7 +163,7 @@ def add_function(cu, func, linecount, file_index):
         add_decompiler_func_info(cu, die, func, 0)
 
     t = func.returnType
-    print f_start, f_end, type(t), t.description, func.name
+    # print f_start, f_end, type(t), t.description, func.name
     add_type(cu, func.returnType)
     # add_type(cu, func.returnType.description)
 
@@ -210,8 +210,18 @@ def add_struct_type(cu, struct):
         stderr.write("dwarf_add_AT_name error")
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, struct.length, err)
     for c in struct.components:
-        # print c.dataType
-        pass
+        member_die = dwarf_new_die(dbg, DW_TAG_member, die, None, None, None, err)
+        member_type_die = add_type(cu, c.dataType)
+        dwarf_add_AT_reference(dbg, member_die, DW_AT_type, member_type_die, err)
+        dwarf_add_AT_name(member_die, c.dataType.name, err)
+
+        loc_expr = dwarf_new_expr(dbg, err)
+        if dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0, err) == DW_DLV_NOCOUNT:
+            stderr.write("dward_add_expr_gen error")
+
+        if dwarf_add_AT_location_expr(dbg, member_die, DW_AT_data_member_location, loc_expr, err) == None:
+            stderr.write("dwarf_add_AT_location_expr error")
+    return die
 
 
 ext_c = lambda s: s + ".c"

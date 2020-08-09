@@ -182,7 +182,13 @@ def add_type(cu, t):
         # print type(t), t
         return add_struct_type(cu, t)
     else:
-        raise Exception(("ERR type:", type(t), t))
+        try:
+            die = dwarf_new_die(dbg, DW_TAG_base_type, cu, None, None, None, err)
+            dwarf_add_AT_name(die, type.name, err)
+            dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, type.length, err)
+            return die
+        except:
+            raise Exception(("ERR type:", type(t), t))
         return None
 
 
@@ -190,8 +196,9 @@ def add_ptr_type(cu, t):
     assert "pointer" in t.description
     die = dwarf_new_die(dbg, DW_TAG_compile_unit, cu, None, None, None, err)
 
-    # TODO: Add without pointer
-    # dwarf_add_AT_reference(dbg, die, DW_AT_type, )
+    child_die = add_type(cu, t.dataType)
+    if dwarf_add_AT_reference(dbg, die, DW_AT_type, child_die, err) == None:
+        stderr.write("dwarf_add_AT_reference child error")
     if dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, 8, err) == None:
         stderr.write("dwarf_add_AT_unsigned_const error")
     return die

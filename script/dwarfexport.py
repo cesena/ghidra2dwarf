@@ -62,7 +62,9 @@ def add_debug_info():
 
     linecount = 1
     for f in get_functions():
-        add_function(cu, f, linecount, file_index)
+        if is_function_executable(f):
+            add_function(cu, f, linecount, file_index)
+        pass
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
 
@@ -103,7 +105,7 @@ def add_decompiler_func_info(cu, func_die, func, source_file_dwarfindex):
     decomp = get_decompiled_function(func)
     for name, datatype, addr, storage in get_decompiled_variables(decomp):
         pass
-        #print name, datatype, addr, storage
+        # print name, datatype, addr, storage
         # add_variable(cu, name, datatype, addr, storage)
 
     cmarkup = decomp.CCodeMarkup
@@ -114,9 +116,9 @@ def add_decompiler_func_info(cu, func_die, func, source_file_dwarfindex):
         # TODO: multiple lines might have the same lowest address
         addresses = [t.minAddress for t in l.allTokens if t.minAddress]
         lowest_addr = min(addresses) if addresses else None
-        #print lowest_addr, l
+        # print lowest_addr, l
         # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
-        # dwarf_add_line_entry(dbg, source_file_dwarfindex, 
+        # dwarf_add_line_entry(dbg, source_file_dwarfindex,
         #     lowest_addr, l.lineNumber, 0, True, False, err)
 
 
@@ -128,6 +130,15 @@ def get_functions():
 
 def get_function_range(func):
     return (func.entryPoint, func.body.maxAddress)
+
+
+def is_function_executable(func):
+    f_start, f_end = get_function_range(func)
+    # Check for functions inside executable segments
+    for s in curr.memory.executeSet.addressRanges:
+        if f_start.offset >= s.minAddress.offset and f_end.offset <= s.maxAddress.offset:
+            return True
+    return False
 
 
 def add_function(cu, func, linecount, file_index):
@@ -150,19 +161,16 @@ def add_function(cu, func, linecount, file_index):
     f_start, f_end = get_function_range(func)
     if f_name == "main":
         add_decompiler_func_info(cu, die, func, 0)
-    # TODO: WTF is this shit
-    # Check for functions inside executable segments
-    for s in curr.memory.executeSet.addressRanges:
-        if f_start.offset >= s.minAddress.offset and f_end.offset <= s.maxAddress.offset:
-            t = func.returnType
-            #print f_start, f_end, type(t), t.description, func.name
+
+    t = func.returnType
+    print f_start, f_end, type(t), t.description, func.name
     add_type(cu, func.returnType)
     # add_type(cu, func.returnType.description)
 
 
 def add_type(cu, t):
     if isinstance(t, Pointer):
-        #print type(t), t
+        # print type(t), t
         return add_ptr_type(cu, t)
     elif isinstance(t, DefaultDataType):
         # TODO: an example of DefaultDataType is `undefined`
@@ -171,11 +179,12 @@ def add_type(cu, t):
         # TODO: an example of BuiltInDataType is `int`
         return None
     elif isinstance(t, Structure):
-        #print type(t), t
+        # print type(t), t
         return add_struct_type(cu, t)
     else:
-        raise Exception(('ERR type:', type(t), t))
+        raise Exception(("ERR type:", type(t), t))
         return None
+
 
 def add_ptr_type(cu, t):
     assert "pointer" in t.description
@@ -194,7 +203,7 @@ def add_struct_type(cu, struct):
         stderr.write("dwarf_add_AT_name error")
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, struct.length, err)
     for c in struct.components:
-        #print c.dataType
+        # print c.dataType
         pass
 
 

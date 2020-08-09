@@ -14,10 +14,12 @@ except:
 from ghidra.app.decompiler import DecompInterface, DecompileOptions
 from ghidra.app.util.bin.format.elf import ElfSymbolTable
 from ghidra.app.decompiler.component import DecompilerUtils
+from ghidra.program.database.data import PointerDB
+from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType
+
 
 from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference
-from com.sun.jna import Pointer
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
@@ -100,7 +102,8 @@ def add_decompiler_func_info(cu, func_die, func, source_file_dwarfindex):
     # print func.allVariables
     decomp = get_decompiled_function(func)
     for name, datatype, addr, storage in get_decompiled_variables(decomp):
-        print name, datatype, addr, storage
+        pass
+        #print name, datatype, addr, storage
         # add_variable(cu, name, datatype, addr, storage)
 
     cmarkup = decomp.CCodeMarkup
@@ -111,7 +114,7 @@ def add_decompiler_func_info(cu, func_die, func, source_file_dwarfindex):
         # TODO: multiple lines might have the same lowest address
         addresses = [t.minAddress for t in l.allTokens if t.minAddress]
         lowest_addr = min(addresses) if addresses else None
-        print lowest_addr, l
+        #print lowest_addr, l
         # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
         # dwarf_add_line_entry(dbg, source_file_dwarfindex, 
         #     lowest_addr, l.lineNumber, 0, True, False, err)
@@ -147,32 +150,51 @@ def add_function(cu, func, linecount, file_index):
     f_start, f_end = get_function_range(func)
     if f_name == "main":
         add_decompiler_func_info(cu, die, func, 0)
+    # TODO: WTF is this shit
     # Check for functions inside executable segments
     for s in curr.memory.executeSet.addressRanges:
         if f_start.offset >= s.minAddress.offset and f_end.offset <= s.maxAddress.offset:
             t = func.returnType
-            #print f_start, f_end, func.returnType.description, func.name
+            #print f_start, f_end, type(t), t.description, func.name
+    add_type(cu, func.returnType)
     # add_type(cu, func.returnType.description)
 
+
+def add_type(cu, t):
+    if isinstance(t, Pointer):
+        #print type(t), t
+        return add_ptr_type(cu, t)
+    elif isinstance(t, DefaultDataType):
+        # TODO: an example of DefaultDataType is `undefined`
+        return None
+    elif isinstance(t, BuiltInDataType):
+        # TODO: an example of BuiltInDataType is `int`
+        return None
+    elif isinstance(t, Structure):
+        #print type(t), t
+        return add_struct_type(cu, t)
+    else:
+        raise Exception(('ERR type:', type(t), t))
+        return None
 
 def add_ptr_type(cu, t):
     assert "pointer" in t.description
     die = dwarf_new_die(dbg, DW_TAG_compile_unit, cu, None, None, None, err)
 
-    # TODO: Add without pointer, Why?
+    # TODO: Add without pointer
     # dwarf_add_AT_reference(dbg, die, DW_AT_type, )
     if dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, 8, err) == None:
         stderr.write("dwarf_add_AT_unsigned_const error")
     return die
 
 
-def add_struct_type(cu, t):
+def add_struct_type(cu, struct):
     die = dwarf_new_die(dbg, DW_TAG_structure_type, cu, None, None, None, err)
-    if dwarf_add_AT_name(die, t.name, err) == None:
+    if dwarf_add_AT_name(die, struct.name, err) == None:
         stderr.write("dwarf_add_AT_name error")
-    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err)
-    for c in t.dataType.components:
-        print c.dataType
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, struct.length, err)
+    for c in struct.components:
+        #print c.dataType
         pass
 
 

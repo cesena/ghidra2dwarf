@@ -77,6 +77,8 @@ def add_debug_info():
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
 
+    add_global_variables(cu)
+    add_structures(cu)
 
 def generate_register_mappings():
     d2g_mapping = DWARFRegisterMappingsManager.getMappingForLang(curr.language)
@@ -119,7 +121,7 @@ def get_decompiled_variables(decomp):
         yield s.name, hv.dataType, s.PCAddress, hv.storage
 
 
-def add_decompiler_func_info(cu, func_die, func, source_file_dwarfindex):
+def add_decompiler_func_info(cu, func_die, func, file_index):
     # https://ghidra.re/ghidra_docs/api/ghidra/app/decompiler/DecompileResults.html
     # print func.allVariables
     decomp = get_decompiled_function(func)
@@ -135,9 +137,10 @@ def add_decompiler_func_info(cu, func_die, func, source_file_dwarfindex):
         addresses = [t.minAddress for t in l.allTokens if t.minAddress]
         lowest_addr = min(addresses) if addresses else None
         # print lowest_addr, l
+        # TODO: is this call to dwarf_lne_set_address needed?
+        # dwarf_lne_set_address(dbg, lowest_line_addr, 0, &err)
         # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
-        # dwarf_add_line_entry(dbg, source_file_dwarfindex,
-        #     lowest_addr, l.lineNumber, 0, True, False, err)
+        dwarf_add_line_entry(dbg, file_index, lowest_addr, l.lineNumber, 0, True, False, err)
 
 
 def get_functions():
@@ -158,6 +161,14 @@ def is_function_executable(func):
             return True
     return False
 
+
+def add_global_variables(cu):
+    # TODO
+    pass
+
+def add_structures(cu):
+    # TODO
+    pass
 
 def add_variable(cu, func_die, name, datatype, addr, storage):
     var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None, err);
@@ -218,9 +229,6 @@ def add_function(cu, func, linecount, file_index):
 
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
-    if f_name in ('main', 'dup_example', 'entry'):
-        # print '-- %s:' % f_name
-        add_decompiler_func_info(cu, die, func, 0)
 
     t = func.returnType
     # print f_start, f_end, type(t), t.description, func.name
@@ -234,6 +242,7 @@ def add_function(cu, func, linecount, file_index):
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index, err)
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, linecount, err)
         dwarf_add_line_entry(dbg, file_index, f_start.offset, linecount, 0, True, False, err)
+        add_decompiler_func_info(cu, die, func, file_index)
         # add_decompiler_func_info(cu, die, func, file, linecount, file_index, 0)
     else:
         # TODO: NEVER?

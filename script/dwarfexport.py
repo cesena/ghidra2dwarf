@@ -43,14 +43,17 @@ def get_libdwarf_err():
     derr = Dwarf_Error(err.value)
     return dwarf_errmsg(derr)
 
+def DERROR(func):
+    assert False, "%s failed: %s" % (func, get_libdwarf_err())
+
 
 def add_debug_info():
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string, err)
     cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None, err)
     print cu
     if options.use_decompiler:
-        if dwarf_add_AT_name(cu, ext_c(curr.name), err) == None:
-            stderr.write("dwarf_add_AT_name error")
+        if dwarf_add_AT_name(cu, ext_c(curr.name), err) is None:
+            DERROR("dwarf_add_AT_name")
         dir_index = dwarf_add_directory_decl(dbg, ext_dbg(curr.name), err)
         file_index = dwarf_add_file_decl(dbg, ext_c(curr.name), dir_index, 0, 0, err)
         dwarf_add_AT_comp_dir(cu, ext_dbg(curr.name), err)
@@ -157,16 +160,14 @@ def is_function_executable(func):
 
 
 def add_variable(cu, func_die, name, datatype, addr, storage):
-    print name, datatype, addr, storage
-
     var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None, err);
     type_die = add_type(cu, datatype)
 
-    at_ref = dwarf_add_AT_reference(dbg, var_die, DW_AT_type, type_die, err)
-    assert at_ref is not None, "dwarf_add_AT_reference failed: " + get_libdwarf_err()
+    if dwarf_add_AT_reference(dbg, var_die, DW_AT_type, type_die, err) is None:
+        DERROR("dwarf_add_AT_reference")
 
-    at_name = dwarf_add_AT_name(var_die, name, err)
-    assert at_name is not None, "dwarf_add_AT_name failed: " + get_libdwarf_err()
+    if dwarf_add_AT_name(var_die, name, err) is None:
+        DERROR("dwarf_add_AT_name")
 
     # TODO: there could be more than one varnode, what does it even mean?
     varnode = storage.firstVarnode
@@ -177,13 +178,11 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
     if varnode_addr.isRegisterAddress():
         reg = curr.getRegister(varnode_addr, varnode.size)
         reg_dwarf = register_mappings[reg.offset]
-        add_expr = dwarf_add_expr_gen(expr, DW_OP_regx, reg_dwarf, 0, err)
-        assert add_expr != DW_DLV_NOCOUNT, "dwarf_add_expr_gen failed: " + get_libdwarf_err()
-        print 'reg', varnode, reg, reg.offset
+        if dwarf_add_expr_gen(expr, DW_OP_regx, reg_dwarf, 0, err) == DW_DLV_NOCOUNT:
+            DERROR("dwarf_add_expr_gen")
     elif varnode_addr.isStackAddress():
-        add_expr = dwarf_add_expr_gen(expr, stack_register_dwarf, varnode_addr.offset, 0, err)
-        assert add_expr != DW_DLV_NOCOUNT, "dwarf_add_expr_gen failed: " + get_libdwarf_err()
-        print 'stack', varnode
+        if dwarf_add_expr_gen(expr, stack_register_dwarf, varnode_addr.offset, 0, err) == DW_DLV_NOCOUNT:
+            DERROR("dwarf_add_expr_gen")
     elif varnode_addr.isMemoryAddress():
         # TODO: globals?
         assert False, 'Memory address'
@@ -197,30 +196,30 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
     else:
         assert False, ('ERR var:', varnode)
     
-    add_loc_expr = dwarf_add_AT_location_expr(dbg, var_die, DW_AT_location, expr, err)
-    assert add_loc_expr is not None, "dwarf_add_AT_location_expr failed: " + get_libdwarf_err()
+    if dwarf_add_AT_location_expr(dbg, var_die, DW_AT_location, expr, err) is None:
+        DERROR("dwarf_add_AT_location_expr")
     return var_die
 
 def add_function(cu, func, linecount, file_index):
     die = dwarf_new_die(dbg, DW_TAG_subprogram, cu, None, None, None, err)
-    if die == None:
-        stderr.write("dwarf_new_die error")
+    if die is None:
+        DERROR("dwarf_new_die")
     loc_expr = dwarf_new_expr(dbg, err)
     if dwarf_add_expr_gen(loc_expr, DW_OP_call_frame_cfa, 0, 0, err) == DW_DLV_NOCOUNT:
-        stderr.write("dwarf_add_expr_gen error")
-    if dwarf_add_AT_location_expr(dbg, die, DW_AT_frame_base, loc_expr, err) == None:
-        stderr.write("dwarf_add_AT_location_expr error")
+        DERROR("dwarf_add_expr_gen")
+    if dwarf_add_AT_location_expr(dbg, die, DW_AT_frame_base, loc_expr, err) is None:
+        DERROR("dwarf_add_AT_location_expr")
     # TODO: Understand difference between c_name and mangled_name
     f_name = func.name
-    if dwarf_add_AT_name(die, f_name, err) == None:
-        stderr.write("dwarf_add_AT_name error")
-    if dwarf_add_AT_string(dbg, die, DW_AT_linkage_name, f_name, err) == None:
-        stderr.write("dwarf_add_AT_string error")
+    if dwarf_add_AT_name(die, f_name, err) is None:
+        DERROR("dwarf_add_AT_name")
+    if dwarf_add_AT_string(dbg, die, DW_AT_linkage_name, f_name, err) is None:
+        DERROR("dwarf_add_AT_string")
 
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
     if f_name in ('main', 'dup_example', 'entry'):
-        print '-- %s:' % f_name
+        # print '-- %s:' % f_name
         add_decompiler_func_info(cu, die, func, 0)
 
     t = func.returnType
@@ -258,7 +257,7 @@ def add_type(cu, t):
         try:
             return add_default_type(cu, t)
         except:
-            raise Exception(("ERR type:", type(t), t))
+            assert False, ("ERR type:", type(t), t)
         return None
 
 
@@ -273,17 +272,17 @@ def add_ptr_type(cu, t):
     die = dwarf_new_die(dbg, DW_TAG_compile_unit, cu, None, None, None, err)
 
     child_die = add_type(cu, t.dataType)
-    if dwarf_add_AT_reference(dbg, die, DW_AT_type, child_die, err) == None:
-        stderr.write("dwarf_add_AT_reference child error")
-    if dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, 8, err) == None:
-        stderr.write("dwarf_add_AT_unsigned_const error")
+    if dwarf_add_AT_reference(dbg, die, DW_AT_type, child_die, err) is None:
+        DERROR("dwarf_add_AT_reference child")
+    if dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, 8, err) is None:
+        DERROR("dwarf_add_AT_unsigned_const")
     return die
 
 
 def add_struct_type(cu, struct):
     die = dwarf_new_die(dbg, DW_TAG_structure_type, cu, None, None, None, err)
-    if dwarf_add_AT_name(die, struct.name, err) == None:
-        stderr.write("dwarf_add_AT_name error")
+    if dwarf_add_AT_name(die, struct.name, err) is None:
+        DERROR("dwarf_add_AT_name")
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, struct.length, err)
     for c in struct.components:
         member_die = dwarf_new_die(dbg, DW_TAG_member, die, None, None, None, err)
@@ -293,10 +292,10 @@ def add_struct_type(cu, struct):
 
         loc_expr = dwarf_new_expr(dbg, err)
         if dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0, err) == DW_DLV_NOCOUNT:
-            stderr.write("dward_add_expr_gen error")
+            DERROR("dward_add_expr_gen")
 
-        if dwarf_add_AT_location_expr(dbg, member_die, DW_AT_data_member_location, loc_expr, err) == None:
-            stderr.write("dwarf_add_AT_location_expr error")
+        if dwarf_add_AT_location_expr(dbg, member_die, DW_AT_data_member_location, loc_expr, err) is None:
+            DERROR("dwarf_add_AT_location_expr")
     return die
 
 

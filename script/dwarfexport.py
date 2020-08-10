@@ -16,6 +16,7 @@ from ghidra.app.util.bin.format.elf import ElfSymbolTable
 from ghidra.app.decompiler.component import DecompilerUtils
 from ghidra.program.database.data import PointerDB
 from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType
+from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 
 
 from libdwarf import LibdwarfLibrary
@@ -36,6 +37,11 @@ class Options:
         self.filename = ""
         self.dwarf_source_path = ""
         self.export_options = 0
+
+
+def get_libdwarf_err():
+    derr = Dwarf_Error(err.value)
+    return dwarf_errmsg(derr)
 
 
 def add_debug_info():
@@ -68,6 +74,17 @@ def add_debug_info():
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
 
+
+def generate_register_mappings():
+    d2g_mapping = DWARFRegisterMappingsManager.getMappingForLang(curr.language)
+    g2d_mapping = {}
+    for i in range(DW_FRAME_LAST_REG_NUM):
+        reg = d2g_mapping.getGhidraReg(i)
+        if reg:
+            g2d_mapping[reg.offset] = i
+    stack_reg_num = d2g_mapping.DWARFStackPointerRegNum
+    stack_reg_dwarf = globals()['DW_OP_breg%d' % stack_reg_num]
+    return g2d_mapping, stack_reg_dwarf
 
 def generate_decomp_interface():
     decompiler = DecompInterface()
@@ -104,9 +121,7 @@ def add_decompiler_func_info(cu, func_die, func, source_file_dwarfindex):
     # print func.allVariables
     decomp = get_decompiled_function(func)
     for name, datatype, addr, storage in get_decompiled_variables(decomp):
-        pass
-        # print name, datatype, addr, storage
-        # add_variable(cu, name, datatype, addr, storage)
+        add_variable(cu, func_die, name, datatype, addr, storage)
 
     cmarkup = decomp.CCodeMarkup
     # TODO: implement our own pretty printer?
@@ -141,6 +156,51 @@ def is_function_executable(func):
     return False
 
 
+def add_variable(cu, func_die, name, datatype, addr, storage):
+    print name, datatype, addr, storage
+
+    var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None, err);
+    type_die = add_type(cu, datatype)
+
+    at_ref = dwarf_add_AT_reference(dbg, var_die, DW_AT_type, type_die, err)
+    assert at_ref is not None, "dwarf_add_AT_reference failed: " + get_libdwarf_err()
+
+    at_name = dwarf_add_AT_name(var_die, name, err)
+    assert at_name is not None, "dwarf_add_AT_name failed: " + get_libdwarf_err()
+
+    # TODO: there could be more than one varnode, what does it even mean?
+    varnode = storage.firstVarnode
+    varnode_addr = varnode.getAddress()
+
+    expr = dwarf_new_expr(dbg, err)
+
+    if varnode_addr.isRegisterAddress():
+        reg = curr.getRegister(varnode_addr, varnode.size)
+        reg_dwarf = register_mappings[reg.offset]
+        add_expr = dwarf_add_expr_gen(expr, DW_OP_regx, reg_dwarf, 0, err)
+        assert add_expr != DW_DLV_NOCOUNT, "dwarf_add_expr_gen failed: " + get_libdwarf_err()
+        print 'reg', varnode, reg, reg.offset
+    elif varnode_addr.isStackAddress():
+        add_expr = dwarf_add_expr_gen(expr, stack_register_dwarf, varnode_addr.offset, 0, err)
+        assert add_expr != DW_DLV_NOCOUNT, "dwarf_add_expr_gen failed: " + get_libdwarf_err()
+        print 'stack', varnode
+    elif varnode_addr.isMemoryAddress():
+        # TODO: globals?
+        assert False, 'Memory address'
+    elif varnode_addr.isHashAddress():
+        # TODO: ghidra synthetic vars.
+        # It however often can be linked to a register(/stack off?) if looking at the disass,
+        # find, if possible, how to get it programmatically.
+        # This info is likely lost when generating the decompiled code. :(
+        # print 'hash', varnode, curr.getRegister(varnode_addr, varnode.size)
+        pass
+    else:
+        assert False, ('ERR var:', varnode)
+    
+    add_loc_expr = dwarf_add_AT_location_expr(dbg, var_die, DW_AT_location, expr, err)
+    assert add_loc_expr is not None, "dwarf_add_AT_location_expr failed: " + get_libdwarf_err()
+    return var_die
+
 def add_function(cu, func, linecount, file_index):
     die = dwarf_new_die(dbg, DW_TAG_subprogram, cu, None, None, None, err)
     if die == None:
@@ -159,7 +219,8 @@ def add_function(cu, func, linecount, file_index):
 
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
-    if f_name == "main":
+    if f_name in ('main', 'dup_example', 'entry'):
+        print '-- %s:' % f_name
         add_decompiler_func_info(cu, die, func, 0)
 
     t = func.returnType
@@ -183,13 +244,6 @@ def add_function(cu, func, linecount, file_index):
     return die
 
 
-def add_default_type(cu, t):
-    die = dwarf_new_die(dbg, DW_TAG_base_type, cu, None, None, None, err)
-    dwarf_add_AT_name(die, t.name, err)
-    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err)
-    return die
-
-
 def add_type(cu, t):
     if isinstance(t, Pointer):
         return add_ptr_type(cu, t)
@@ -207,6 +261,12 @@ def add_type(cu, t):
             raise Exception(("ERR type:", type(t), t))
         return None
 
+
+def add_default_type(cu, t):
+    die = dwarf_new_die(dbg, DW_TAG_base_type, cu, None, None, None, err)
+    dwarf_add_AT_name(die, t.name, err)
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err)
+    return die
 
 def add_ptr_type(cu, t):
     assert "pointer" in t.description
@@ -244,11 +304,13 @@ ext_c = lambda s: s + ".c"
 ext_dbg = lambda s: s + ".dbg"
 
 l = LibdwarfLibrary.INSTANCE
-curr = getCurrentProgram()
-decompiler = generate_decomp_interface()
 g = globals()
 for i in LibdwarfLibrary.__dict__.keys():
     g[i] = getattr(l, i)
+
+curr = getCurrentProgram()
+decompiler = generate_decomp_interface()
+register_mappings, stack_register_dwarf = generate_register_mappings()
 
 print DW_DLE_DWARF_INIT_DBG_NULL
 print DW_DLE_HEX_STRING_ERROR

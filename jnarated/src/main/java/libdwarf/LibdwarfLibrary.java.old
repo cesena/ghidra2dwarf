@@ -8174,13 +8174,13 @@ public interface LibdwarfLibrary extends Library {
 	 * @deprecated use the safer methods {@link #dwarf_errmsg(libdwarf.LibdwarfLibrary.Dwarf_Error)} and {@link #dwarf_errmsg(com.sun.jna.Pointer)} instead
 	 */
 	@Deprecated 
-	Pointer dwarf_errmsg(Pointer Dwarf_Error1);
+	String dwarf_errmsg(Pointer Dwarf_Error1);
 	/**
 	 * error<br>
 	 * Original signature : <code>char* dwarf_errmsg(Dwarf_Error)</code><br>
 	 * <i>native declaration : line 3694</i>
 	 */
-	Pointer dwarf_errmsg(LibdwarfLibrary.Dwarf_Error Dwarf_Error1);
+	String dwarf_errmsg(LibdwarfLibrary.Dwarf_Error Dwarf_Error1);
 	/**
 	 * errornum<br>
 	 * Original signature : <code>char* dwarf_errmsg_by_number(Dwarf_Unsigned)</code><br>

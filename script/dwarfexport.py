@@ -20,11 +20,13 @@ from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 
 
 from libdwarf import LibdwarfLibrary
-from com.sun.jna.ptr import PointerByReference
+from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
 from sys import stderr
+import os.path
+import tempfile
 
 
 class Options:
@@ -140,7 +142,8 @@ def add_decompiler_func_info(cu, func_die, func, file_index):
         # TODO: is this call to dwarf_lne_set_address needed?
         # dwarf_lne_set_address(dbg, lowest_line_addr, 0, &err)
         # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
-        dwarf_add_line_entry(dbg, file_index, lowest_addr, l.lineNumber, 0, True, False, err)
+        if lowest_addr: # TODO: is this ok?
+            dwarf_add_line_entry(dbg, file_index, lowest_addr.offset, l.lineNumber, 0, True, False, err)
 
 
 def get_functions():
@@ -308,6 +311,40 @@ def add_struct_type(cu, struct):
     return die
 
 
+def write_detached_dwarf_file(path):
+    section_count = dwarf_transform_to_disk_form(dbg, err)
+    if section_count == DW_DLV_NOCOUNT:
+        ERROR("dwarf_transform_to_disk_form")
+
+    print 'section_count', section_count
+    for i in xrange(section_count):
+        section_index = LongByReference()
+        length = LongByReference()
+        content = dwarf_get_section_bytes(dbg, i, section_index, length, err)
+        if content is None:
+            ERROR("dwarf_get_section_bytes")
+
+        section_index = section_index.value
+        length = length.value
+        content = content.getByteArray(0, length)
+        section_name = debug_sections[section_index]
+        print section_index, section_name, length
+        file_path = os.path.join(path, section_name.lstrip('.'))
+
+        # TODO: according to the .cpp we might get the same section_index multiple times?
+        with open(file_path, 'wb') as f:
+            f.write(content)
+            print 'written', file_path
+
+    
+debug_sections = []
+# (const char *name, int size, Dwarf_Unsigned type, Dwarf_Unsigned flags, Dwarf_Unsigned link, Dwarf_Unsigned info, Dwarf_Unsigned *sect_name_symbol_index, void *userdata, int *)
+def info_callback(name, *args):
+    name = name.getString(0)
+    print 'info_callback', name
+    debug_sections.append(name)
+    return len(debug_sections) - 1
+    
 ext_c = lambda s: s + ".c"
 ext_dbg = lambda s: s + ".dbg"
 
@@ -331,7 +368,7 @@ dwarf_producer_init(
     | DW_DLC_POINTER64
     | DW_DLC_OFFSET32
     | DW_DLC_TARGET_LITTLEENDIAN,
-    lambda x: 0,
+    info_callback,
     None,
     None,
     None,
@@ -345,3 +382,5 @@ dbg = Dwarf_P_Debug(dbg.value)
 options = Options(use_dec=True)
 add_debug_info()
 
+write_detached_dwarf_file(tempfile.gettempdir())
+dwarf_producer_finish(dbg, None)

@@ -8501,6 +8501,13 @@ public interface LibdwarfLibrary extends Library {
 	 * Original signature : <code>Dwarf_Ptr dwarf_get_section_bytes(Dwarf_P_Debug, Dwarf_Signed, Dwarf_Signed*, Dwarf_Unsigned*, Dwarf_Error*)</code><br>
 	 * <i>native declaration : line 3795</i>
 	 */
+	Pointer dwarf_get_section_bytes(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, long Dwarf_Signed1, LongByReference Dwarf_SignedPtr1, LongByReference Dwarf_UnsignedPtr1, PointerByReference Dwarf_ErrorPtr1);
+	/**
+	 * Original function.  Checking for error is difficult.<br>
+	 * dbg<br>
+	 * Original signature : <code>Dwarf_Ptr dwarf_get_section_bytes(Dwarf_P_Debug, Dwarf_Signed, Dwarf_Signed*, Dwarf_Unsigned*, Dwarf_Error*)</code><br>
+	 * <i>native declaration : line 3795</i>
+	 */
 	Pointer dwarf_get_section_bytes(Pointer Dwarf_P_Debug1, long Dwarf_Signed1, LongByReference Dwarf_SignedPtr1, LongByReference Dwarf_UnsignedPtr1, PointerByReference Dwarf_ErrorPtr1);
 	/**
 	 * Original signature : <code>int dwarf_get_relocation_info_count(Dwarf_P_Debug, Dwarf_Unsigned*, int*, Dwarf_Error*)</code><br>

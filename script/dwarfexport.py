@@ -78,7 +78,7 @@ def add_debug_info():
         pass
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
-
+    dwarf_add_die_to_debug(dbg, cu, err)
     add_global_variables(cu)
     add_structures(cu)
 

@@ -52,13 +52,13 @@ def DERROR(func):
 def add_debug_info():
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string, err)
     cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None, err)
-    print cu
+    path, _ = os.path.split(curr.executablePath)
     if options.use_decompiler:
         if dwarf_add_AT_name(cu, ext_c(curr.name), err) is None:
             DERROR("dwarf_add_AT_name")
-        dir_index = dwarf_add_directory_decl(dbg, ext_dbg(curr.name), err)
+        dir_index = dwarf_add_directory_decl(dbg, path, err)
         file_index = dwarf_add_file_decl(dbg, ext_c(curr.name), dir_index, 0, 0, err)
-        dwarf_add_AT_comp_dir(cu, ext_dbg(curr.name), err)
+        dwarf_add_AT_comp_dir(cu, path, err)
     # memory = curr.getMemory()
     # Get sections
     # memory.getBlocks()

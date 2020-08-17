@@ -24,9 +24,12 @@ from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
-from sys import stderr
+from sys import stderr, stdout
 import os.path
 import tempfile
+
+
+record = {}
 
 
 class Options:
@@ -44,6 +47,7 @@ class Options:
 def get_libdwarf_err():
     derr = Dwarf_Error(err.value)
     return dwarf_errmsg(derr)
+
 
 def DERROR(func):
     assert False, "%s failed: %s" % (func, get_libdwarf_err())
@@ -82,6 +86,7 @@ def add_debug_info():
     add_global_variables(cu)
     add_structures(cu)
 
+
 def generate_register_mappings():
     d2g_mapping = DWARFRegisterMappingsManager.getMappingForLang(curr.language)
     g2d_mapping = {}
@@ -90,8 +95,9 @@ def generate_register_mappings():
         if reg:
             g2d_mapping[reg.offset] = i
     stack_reg_num = d2g_mapping.DWARFStackPointerRegNum
-    stack_reg_dwarf = globals()['DW_OP_breg%d' % stack_reg_num]
+    stack_reg_dwarf = globals()["DW_OP_breg%d" % stack_reg_num]
     return g2d_mapping, stack_reg_dwarf
+
 
 def generate_decomp_interface():
     decompiler = DecompInterface()
@@ -142,7 +148,7 @@ def add_decompiler_func_info(cu, func_die, func, file_index):
         # TODO: is this call to dwarf_lne_set_address needed?
         # dwarf_lne_set_address(dbg, lowest_line_addr, 0, &err)
         # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
-        if lowest_addr: # TODO: is this ok?
+        if lowest_addr:  # TODO: is this ok?
             dwarf_add_line_entry(dbg, file_index, lowest_addr.offset, l.lineNumber, 0, True, False, err)
 
 
@@ -169,12 +175,14 @@ def add_global_variables(cu):
     # TODO
     pass
 
+
 def add_structures(cu):
     # TODO
     pass
 
+
 def add_variable(cu, func_die, name, datatype, addr, storage):
-    var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None, err);
+    var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None, err)
     type_die = add_type(cu, datatype)
 
     if dwarf_add_AT_reference(dbg, var_die, DW_AT_type, type_die, err) is None:
@@ -199,7 +207,7 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
             DERROR("dwarf_add_expr_gen")
     elif varnode_addr.isMemoryAddress():
         # TODO: globals?
-        assert False, 'Memory address'
+        assert False, "Memory address"
     elif varnode_addr.isHashAddress():
         # TODO: ghidra synthetic vars.
         # It however often can be linked to a register(/stack off?) if looking at the disass,
@@ -208,11 +216,12 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
         # print 'hash', varnode, curr.getRegister(varnode_addr, varnode.size)
         pass
     else:
-        assert False, ('ERR var:', varnode)
-    
+        assert False, ("ERR var:", varnode)
+
     if dwarf_add_AT_location_expr(dbg, var_die, DW_AT_location, expr, err) is None:
         DERROR("dwarf_add_AT_location_expr")
     return var_die
+
 
 def add_function(cu, func, linecount, file_index):
     die = dwarf_new_die(dbg, DW_TAG_subprogram, cu, None, None, None, err)
@@ -236,8 +245,8 @@ def add_function(cu, func, linecount, file_index):
     t = func.returnType
     # print f_start, f_end, type(t), t.description, func.name
     # TODO: Fix add_type function
-    # ret_type_die = add_type(cu, func.returnType)
-    # dwarf_add_AT_reference(dbg, die, DW_AT_type, ret_type_die, err)
+    ret_type_die = add_type(cu, func.returnType)
+    dwarf_add_AT_reference(dbg, die, DW_AT_type, ret_type_die, err)
 
     dwarf_add_AT_targ_address(dbg, die, DW_AT_low_pc, f_start.offset, 0, err)
     dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end.offset - 1, 0, err)
@@ -259,6 +268,9 @@ def add_function(cu, func, linecount, file_index):
 
 
 def add_type(cu, t):
+    if record.get(t.name, 0) != 0:
+        return record[t.name]
+
     if isinstance(t, Pointer):
         return add_ptr_type(cu, t)
     elif isinstance(t, DefaultDataType):
@@ -278,13 +290,16 @@ def add_type(cu, t):
 
 def add_default_type(cu, t):
     die = dwarf_new_die(dbg, DW_TAG_base_type, cu, None, None, None, err)
+    record[t.name] = die
     dwarf_add_AT_name(die, t.name, err)
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err)
     return die
 
+
 def add_ptr_type(cu, t):
     assert "pointer" in t.description
     die = dwarf_new_die(dbg, DW_TAG_compile_unit, cu, None, None, None, err)
+    record[t.name] = die
 
     child_die = add_type(cu, t.dataType)
     if dwarf_add_AT_reference(dbg, die, DW_AT_type, child_die, err) is None:
@@ -296,6 +311,7 @@ def add_ptr_type(cu, t):
 
 def add_struct_type(cu, struct):
     die = dwarf_new_die(dbg, DW_TAG_structure_type, cu, None, None, None, err)
+    record[struct.name] = die
     if dwarf_add_AT_name(die, struct.name, err) is None:
         DERROR("dwarf_add_AT_name")
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, struct.length, err)
@@ -315,11 +331,14 @@ def add_struct_type(cu, struct):
 
 
 def write_detached_dwarf_file(path):
+    for k, v in record.items():
+        print k, v
+
     section_count = dwarf_transform_to_disk_form(dbg, err)
     if section_count == DW_DLV_NOCOUNT:
         ERROR("dwarf_transform_to_disk_form")
 
-    print 'section_count', section_count
+    print "section_count", section_count
     for i in xrange(section_count):
         section_index = LongByReference()
         length = LongByReference()
@@ -332,22 +351,23 @@ def write_detached_dwarf_file(path):
         content = content.getByteArray(0, length)
         section_name = debug_sections[section_index]
         print section_index, section_name, length
-        file_path = os.path.join(path, section_name.lstrip('.'))
+        file_path = os.path.join(path, section_name.lstrip("."))
 
         # TODO: according to the .cpp we might get the same section_index multiple times?
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             f.write(content)
-            print 'written', file_path
+            print "written", file_path
 
-    
+
 debug_sections = []
 # (const char *name, int size, Dwarf_Unsigned type, Dwarf_Unsigned flags, Dwarf_Unsigned link, Dwarf_Unsigned info, Dwarf_Unsigned *sect_name_symbol_index, void *userdata, int *)
 def info_callback(name, *args):
     name = name.getString(0)
-    print 'info_callback', name
+    print "info_callback", name
     debug_sections.append(name)
     return len(debug_sections) - 1
-    
+
+
 ext_c = lambda s: s + ".c"
 ext_dbg = lambda s: s + ".dbg"
 

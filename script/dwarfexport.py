@@ -130,7 +130,7 @@ def get_decompiled_variables(decomp):
         yield s.name, hv.dataType, s.PCAddress, hv.storage
 
 
-def add_decompiler_func_info(cu, func_die, func, file_index):
+def add_decompiler_func_info(cu, func_die, func, file_index, linecount):
     # https://ghidra.re/ghidra_docs/api/ghidra/app/decompiler/DecompileResults.html
     # print func.allVariables
     decomp = get_decompiled_function(func)
@@ -149,8 +149,8 @@ def add_decompiler_func_info(cu, func_die, func, file_index):
         # TODO: is this call to dwarf_lne_set_address needed?
         # dwarf_lne_set_address(dbg, lowest_line_addr, 0, &err)
         # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
-        if lowest_addr:  # TODO: is this ok?
-            dwarf_add_line_entry(dbg, file_index, lowest_addr.offset, l.lineNumber, 0, True, False, err)
+        if lowest_addr:
+            dwarf_add_line_entry(dbg, file_index, lowest_addr.offset, l.lineNumber + linecount, 0, True, False, err)
 
 
 def get_functions():
@@ -253,8 +253,8 @@ def add_function(cu, func, file_index):
     dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end.offset - 1, 0, err)
 
     if options.use_decompiler:
-        # TODO: thafuck, use CCodeMarkup?
-        linecount = sum(1 for line in open(ext_c(curr.name))) + 6
+        # TODO: thafuck, I tried with a global variable but it didn't work well...
+        linecount = sum(1 for line in open(ext_c(curr.name))) + 7
         with open(ext_c(curr.name), "a") as src:
             res = get_decompiled_function(func)
             src.write(res.decompiledFunction.c)
@@ -263,7 +263,7 @@ def add_function(cu, func, file_index):
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index, err)
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, linecount, err)
         dwarf_add_line_entry(dbg, file_index, f_start.offset, linecount, 0, True, False, err)
-        # add_decompiler_func_info(cu, die, func, file_index)
+        add_decompiler_func_info(cu, die, func, file_index, linecount)
         pass
     else:
         # TODO: NEVER?
@@ -389,11 +389,7 @@ register_mappings, stack_register_dwarf = generate_register_mappings()
 dbg = PointerByReference()
 err = PointerByReference()
 dwarf_producer_init(
-    DW_DLC_WRITE
-    | DW_DLC_SYMBOLIC_RELOCATIONS
-    | DW_DLC_POINTER64
-    | DW_DLC_OFFSET32
-    | DW_DLC_TARGET_LITTLEENDIAN,
+    DW_DLC_WRITE | DW_DLC_SYMBOLIC_RELOCATIONS | DW_DLC_POINTER64 | DW_DLC_OFFSET32 | DW_DLC_TARGET_LITTLEENDIAN,
     info_callback,
     None,
     None,

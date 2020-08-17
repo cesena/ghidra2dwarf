@@ -17,6 +17,7 @@ from ghidra.app.decompiler.component import DecompilerUtils
 from ghidra.program.database.data import PointerDB
 from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType
 from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
+from ghidra.util.task import ConsoleTaskMonitor
 
 
 from libdwarf import LibdwarfLibrary
@@ -76,10 +77,9 @@ def add_debug_info():
 
     # However we can omit this step and directly decompile all functions
 
-    linecount = 1
     for f in get_functions():
         if is_function_executable(f):
-            add_function(cu, f, linecount, file_index)
+            add_function(cu, f, file_index)
         pass
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
@@ -224,7 +224,7 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
     return var_die
 
 
-def add_function(cu, func, linecount, file_index):
+def add_function(cu, func, file_index):
     die = dwarf_new_die(dbg, DW_TAG_subprogram, cu, None, None, None, err)
     if die is None:
         DERROR("dwarf_new_die")
@@ -253,10 +253,16 @@ def add_function(cu, func, linecount, file_index):
     dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end.offset - 1, 0, err)
 
     if options.use_decompiler:
+        # TODO: thafuck, use CCodeMarkup?
+        linecount = sum(1 for line in open(ext_c(curr.name))) + 6
+        with open(ext_c(curr.name), "a") as src:
+            res = get_decompiled_function(func)
+            src.write(res.decompiledFunction.c)
+
         # TODO: Update with current file_index and linecount
-        # dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index, err)
-        # dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, linecount, err)
-        # dwarf_add_line_entry(dbg, file_index, f_start.offset, linecount, 0, True, False, err)
+        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index, err)
+        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, linecount, err)
+        dwarf_add_line_entry(dbg, file_index, f_start.offset, linecount, 0, True, False, err)
         # add_decompiler_func_info(cu, die, func, file_index)
         pass
     else:
@@ -330,9 +336,10 @@ def add_struct_type(cu, struct):
 
 
 def write_detached_dwarf_file(path):
+    """
     for k, v in record.items():
         print k, v
-
+    """
     section_count = dwarf_transform_to_disk_form(dbg, err)
     if section_count == DW_DLV_NOCOUNT:
         ERROR("dwarf_transform_to_disk_form")
@@ -379,9 +386,6 @@ curr = getCurrentProgram()
 decompiler = generate_decomp_interface()
 register_mappings, stack_register_dwarf = generate_register_mappings()
 
-print DW_DLE_DWARF_INIT_DBG_NULL
-print DW_DLE_HEX_STRING_ERROR
-
 dbg = PointerByReference()
 err = PointerByReference()
 dwarf_producer_init(
@@ -400,6 +404,8 @@ dwarf_producer_init(
     dbg,
     err,
 )
+with open(ext_c(curr.name), "w") as f:
+    f.write("\n")
 dbg = Dwarf_P_Debug(dbg.value)
 options = Options(use_dec=True)
 add_debug_info()

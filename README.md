@@ -4,6 +4,22 @@
 
 Inspired by: [dwarfexport](https://github.com/ALSchwalm/dwarfexport)
 
+## Installation
+
+### Linux
+
+```sh
+mkdir -p ~/.ghidra/${GHIDRA_VERSION}/plugins
+cp ./jnarated/target/libdwarf.jar ~/.ghidra/${GHIDRA_VERSION}/plugins/
+```
+
+Then you can use [ghidra2dwarf](./src/ghidra2dwarf.sh) to export the symbols:
+
+```
+./src/ghidra2dwarf.sh <Project directory> <Project name> <Binary path> <Binary>
+# Example: ./src/ghidra2dwarf.sh ~/.local/share/ghidra/ TEST ~/CTF/ chall
+```
+
 ## Build libdwarf
 
 ### Linux

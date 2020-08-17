@@ -5,7 +5,7 @@
 GHIDRA_PATH=~/Tools/ghidra_9.1.2/build/dist/ghidra_9.1_DEV/
 if [ "$#" -ne 4 ]
 then 
-    echo "$0 <Project directory> <Project name> <Binary Path> <Binary>"
+    echo "$0 <Project directory> <Project name> <Binary path> <Binary>"
     exit
 fi
 
@@ -17,7 +17,7 @@ BINARY=$4
 #remove gpr and rep files first (CAREFUL!)
 rm -rf *.gpr *.rep
 
-time $GHIDRA_PATH/support/analyzeHeadless $DIR/ $NAME -process $BINARY -postscript ./dwarfexport.py
+time $GHIDRA_PATH/support/analyzeHeadless $DIR/ $NAME -process $BINARY -postscript ./ghidra2dwarf.py
 
 cp /tmp/debug_info ${BINARY_PATH}/.debug_info
 cp /tmp/debug_abbrev ${BINARY_PATH}/.debug_abbrev

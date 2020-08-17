@@ -30,6 +30,7 @@ import os.path
 import tempfile
 
 
+MAGIC_OFFSET = 7
 record = {}
 
 
@@ -150,7 +151,9 @@ def add_decompiler_func_info(cu, func_die, func, file_index, linecount):
         # dwarf_lne_set_address(dbg, lowest_line_addr, 0, &err)
         # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
         if lowest_addr:
-            dwarf_add_line_entry(dbg, file_index, lowest_addr.offset, l.lineNumber + linecount, 0, True, False, err)
+            dwarf_add_line_entry(
+                dbg, file_index, lowest_addr.offset, l.lineNumber + linecount - MAGIC_OFFSET, 0, True, False, err
+            )
 
 
 def get_functions():
@@ -198,29 +201,32 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
 
     expr = dwarf_new_expr(dbg, err)
 
-    if varnode_addr.isRegisterAddress():
-        reg = curr.getRegister(varnode_addr, varnode.size)
-        reg_dwarf = register_mappings[reg.offset]
-        if dwarf_add_expr_gen(expr, DW_OP_regx, reg_dwarf, 0, err) == DW_DLV_NOCOUNT:
-            DERROR("dwarf_add_expr_gen")
-    elif varnode_addr.isStackAddress():
-        if dwarf_add_expr_gen(expr, stack_register_dwarf, varnode_addr.offset, 0, err) == DW_DLV_NOCOUNT:
-            DERROR("dwarf_add_expr_gen")
-    elif varnode_addr.isMemoryAddress():
-        # TODO: globals?
-        assert False, "Memory address"
-    elif varnode_addr.isHashAddress():
-        # TODO: ghidra synthetic vars.
-        # It however often can be linked to a register(/stack off?) if looking at the disass,
-        # find, if possible, how to get it programmatically.
-        # This info is likely lost when generating the decompiled code. :(
-        # print 'hash', varnode, curr.getRegister(varnode_addr, varnode.size)
-        pass
-    else:
-        assert False, ("ERR var:", varnode)
+    try:
+        if varnode_addr.isRegisterAddress():
+            reg = curr.getRegister(varnode_addr, varnode.size)
+            reg_dwarf = register_mappings[reg.offset]
+            if dwarf_add_expr_gen(expr, DW_OP_regx, reg_dwarf, 0, err) == DW_DLV_NOCOUNT:
+                DERROR("dwarf_add_expr_gen")
+        elif varnode_addr.isStackAddress():
+            if dwarf_add_expr_gen(expr, stack_register_dwarf, varnode_addr.offset, 0, err) == DW_DLV_NOCOUNT:
+                DERROR("dwarf_add_expr_gen")
+        elif varnode_addr.isMemoryAddress():
+            # TODO: globals?
+            assert False, "Memory address"
+        elif varnode_addr.isHashAddress():
+            # TODO: ghidra synthetic vars.
+            # It however often can be linked to a register(/stack off?) if looking at the disass,
+            # find, if possible, how to get it programmatically.
+            # This info is likely lost when generating the decompiled code. :(
+            # print 'hash', varnode, curr.getRegister(varnode_addr, varnode.size)
+            pass
+        else:
+            assert False, ("ERR var:", varnode)
 
-    if dwarf_add_AT_location_expr(dbg, var_die, DW_AT_location, expr, err) is None:
-        DERROR("dwarf_add_AT_location_expr")
+        if dwarf_add_AT_location_expr(dbg, var_die, DW_AT_location, expr, err) is None:
+            DERROR("dwarf_add_AT_location_expr")
+    except:
+        return var_die
     return var_die
 
 
@@ -254,7 +260,7 @@ def add_function(cu, func, file_index):
 
     if options.use_decompiler:
         # TODO: thafuck, I tried with a global variable but it didn't work well...
-        linecount = sum(1 for line in open(ext_c(curr.name))) + 7
+        linecount = sum(1 for line in open(ext_c(curr.name))) + MAGIC_OFFSET
         with open(ext_c(curr.name), "a") as src:
             res = get_decompiled_function(func)
             src.write(res.decompiledFunction.c)

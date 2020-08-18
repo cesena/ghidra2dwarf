@@ -25,8 +25,10 @@ from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
-from sys import stderr, stdout
-import os.path
+from sys import stderr, stdout, argv
+
+import subprocess
+import os
 import tempfile
 
 
@@ -414,3 +416,8 @@ add_debug_info()
 
 write_detached_dwarf_file(tempfile.gettempdir())
 dwarf_producer_finish(dbg, None)
+
+if len(argv) <= 1:
+    script_path = os.path.split(sourceFile.absolutePath)[0]
+    exe_path = os.path.split(curr.executablePath)[0]
+    subprocess.call([script_path + "/export.sh", exe_path, curr.name])

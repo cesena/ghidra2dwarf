@@ -5,10 +5,10 @@ BINARY=$2
 
 echo ${BINARY_PATH}
 echo ${BINARY}
-cp /tmp/debug_info ${BINARY_PATH}/.debug_info
-cp /tmp/debug_abbrev ${BINARY_PATH}/.debug_abbrev
-cp /tmp/debug_line ${BINARY_PATH}/.debug_line
-cp ${BINARY}.c $BINARY_PATH
+mv /tmp/debug_info ${BINARY_PATH}/.debug_info
+mv /tmp/debug_abbrev ${BINARY_PATH}/.debug_abbrev
+mv /tmp/debug_line ${BINARY_PATH}/.debug_line
+mv ${BINARY}.c $BINARY_PATH
 cd $BINARY_PATH
 cp $BINARY ${BINARY}.sym.exe
 objcopy --add-section .debug_info=.debug_info ${BINARY}.sym.exe

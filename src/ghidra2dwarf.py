@@ -25,7 +25,7 @@ from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
-from sys import stderr, stdout, argv
+from sys import stderr, stdout, argv, platform
 
 import subprocess
 import os
@@ -344,10 +344,6 @@ def add_struct_type(cu, struct):
 
 
 def write_detached_dwarf_file(path):
-    """
-    for k, v in record.items():
-        print k, v
-    """
     section_count = dwarf_transform_to_disk_form(dbg, err)
     if section_count == DW_DLV_NOCOUNT:
         ERROR("dwarf_transform_to_disk_form")
@@ -372,6 +368,11 @@ def write_detached_dwarf_file(path):
             f.write(content)
             print "written", file_path
 
+def get_os_version():
+    ver = platform.lower()
+    if ver.startswith('java'):
+        ver = java.lang.System.getProperty("os.name").lower()
+    return ver
 
 debug_sections = []
 # (const char *name, int size, Dwarf_Unsigned type, Dwarf_Unsigned flags, Dwarf_Unsigned link, Dwarf_Unsigned info, Dwarf_Unsigned *sect_name_symbol_index, void *userdata, int *)
@@ -417,7 +418,12 @@ add_debug_info()
 write_detached_dwarf_file(tempfile.gettempdir())
 dwarf_producer_finish(dbg, None)
 
-if len(argv) <= 1:
-    script_path = os.path.split(sourceFile.absolutePath)[0]
-    exe_path = os.path.split(curr.executablePath)[0]
+os_type = get_os_version()
+script_path = os.path.split(sourceFile.absolutePath)[0]
+exe_path = os.path.split(curr.executablePath)[0]
+
+if os_type == "linux":
     subprocess.call([script_path + "/export.sh", exe_path, curr.name])
+elif "win" in os_type:
+    subprocess.call([script_path + "\\export.bat", exe_path, curr.name])
+

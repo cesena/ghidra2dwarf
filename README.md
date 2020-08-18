@@ -9,11 +9,30 @@ Inspired by: [dwarfexport](https://github.com/ALSchwalm/dwarfexport)
 ### Linux
 
 ```sh
+git clone https://github.com/cesena/ghidra2dwarf.git
+cd ghidra2dwarf
 mkdir -p ~/.ghidra/${GHIDRA_VERSION}/plugins
 cp ./jnarated/target/libdwarf.jar ~/.ghidra/${GHIDRA_VERSION}/plugins/
 ```
 
-Then you can use [ghidra2dwarf](./src/ghidra2dwarf.sh) to export the symbols:
+### Windows
+
+TODO
+
+## Run
+
+### Linux
+
+In the script manager -> script directories add the `src` directory:
+
+![](./img/script-directories.png)
+
+And then run `ghidra2dwarf`:
+
+![](./img/run-script.png)
+
+If you saved the project and ghidra is closed, you can launch [ghidra2dwarf.sh](./src/ghidra2dwarf.sh)
+to run ghidra in headless mode and export the dwarf informations:
 
 ```
 ./src/ghidra2dwarf.sh <Project directory> <Project name> <Binary path> <Binary>

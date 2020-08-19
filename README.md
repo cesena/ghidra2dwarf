@@ -4,6 +4,23 @@
 
 Inspired by: [dwarfexport](https://github.com/ALSchwalm/dwarfexport)
 
+Ghidra2Dwarf is a ghidra plugin that allows the export of dwarf debug informations
+for ELF binaries.
+
+More specifically it exports inside a source file named `${program}.c` all the decompiled
+functions, and create an ELF binary named `${program}.sym.exe` with the dwarf sections
+needed to debug using the source file.
+
+Example:
+
+![](./img/gdb.png)
+
+Inside gdb now you can use:
+
+1. `list <function>` to display the function's source code.
+2. `n` to step one source code line instruction.
+3. `ni` to step one assembly instruction.
+
 ## Installation
 
 ### Linux
@@ -11,8 +28,8 @@ Inspired by: [dwarfexport](https://github.com/ALSchwalm/dwarfexport)
 ```sh
 git clone https://github.com/cesena/ghidra2dwarf.git
 cd ghidra2dwarf
-mkdir -p ~/.ghidra/${GHIDRA_VERSION}/plugins
-cp ./jnarated/target/libdwarf.jar ~/.ghidra/${GHIDRA_VERSION}/plugins/
+mkdir -p ~/.ghidra/.${GHIDRA_VERSION}/plugins
+cp ./jnarated/target/libdwarf.jar ~/.ghidra/.${GHIDRA_VERSION}/plugins/
 ```
 
 ### Windows

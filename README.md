@@ -21,8 +21,6 @@ TODO
 
 ## Run
 
-### Linux
-
 In the script manager -> script directories add the `src` directory:
 
 ![](./img/script-directories.png)
@@ -31,6 +29,10 @@ And then run `ghidra2dwarf`:
 
 ![](./img/run-script.png)
 
+### Headless mode
+
+#### Linux
+
 If you saved the project and ghidra is closed, you can launch [ghidra2dwarf.sh](./src/ghidra2dwarf.sh)
 to run ghidra in headless mode and export the dwarf informations:
 
@@ -38,6 +40,18 @@ to run ghidra in headless mode and export the dwarf informations:
 ./src/ghidra2dwarf.sh <Project directory> <Project name> <Binary path> <Binary>
 # Example: ./src/ghidra2dwarf.sh ~/.local/share/ghidra/ TEST ~/CTF/ chall
 ```
+
+#### Windows
+
+TODO
+
+## Known issues
+
+* If the ELF binary is PIE, you need to rebase the memory map to the address `0`:
+
+![](./img/rebase-pie.gif)
+
+* Sometimes you get an `IndexError`, try to re-run the script until it works.
 
 ## Build libdwarf
 

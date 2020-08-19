@@ -25,16 +25,27 @@ Inside gdb now you can use:
 
 ### Linux
 
+Bash:
+
 ```sh
 git clone https://github.com/cesena/ghidra2dwarf.git
 cd ghidra2dwarf
+export GHIDRA_VERSION="ghidra_9.1.2_PUBLIC" # Change here with correct version
 mkdir -p ~/.ghidra/.${GHIDRA_VERSION}/plugins
-cp ./jnarated/target/libdwarf.jar ~/.ghidra/.${GHIDRA_VERSION}/plugins/
+cp .\jnarated\target\libdwarf.jar ~/.ghidra/.${GHIDRA_VERSION}/plugins
 ```
 
 ### Windows
 
-TODO
+Powershell:
+
+```powershell
+git clone https://github.com/cesena/ghidra2dwarf.git
+cd ghidra2dwarf
+Set-Variable -Name "GHIDRA_VERSION" -Value "ghidra_9.1.2_PUBLIC"
+mkdir -p ~\.ghidra\.$GHIDRA_VERSION\plugins
+cp .\jnarated\target\libdwarf.jar ~\.ghidra\.$GHIDRA_VERSION\plugins
+```
 
 ## Run
 

@@ -8,8 +8,8 @@ Ghidra2Dwarf is a ghidra plugin that allows the export of dwarf debug informatio
 for ELF binaries.
 
 More specifically it exports inside a source file named `${program}.c` all the decompiled
-functions, and create an ELF binary named `${program}.sym.exe` with the dwarf sections
-needed to debug using the source file.
+functions, and create an ELF binary named `${program}.sym.exe` that can be used to
+do source code level debugging.
 
 Example:
 

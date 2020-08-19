@@ -57,6 +57,15 @@ And then run `ghidra2dwarf`:
 
 ![](./img/run-script.png)
 
+In windows objcopy.exe is not working, so you need to do the last step on a *nix
+shell:
+
+```sh
+objcopy --add-section .debug_info=.debug_info ${BINARY}.sym.exe
+objcopy --add-section .debug_line=.debug_line ${BINARY}.sym.exe
+objcopy --add-section .debug_abbrev=.debug_abbrev ${BINARY}.sym.exe
+```
+
 ### Headless mode
 
 #### Linux

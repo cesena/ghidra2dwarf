@@ -61,9 +61,17 @@ In windows objcopy.exe is not working, so you need to do the last step on a *nix
 shell:
 
 ```sh
+cp ${BINARY} ${BINARY}.sym.exe
 objcopy --add-section .debug_info=.debug_info ${BINARY}.sym.exe
 objcopy --add-section .debug_line=.debug_line ${BINARY}.sym.exe
 objcopy --add-section .debug_abbrev=.debug_abbrev ${BINARY}.sym.exe
+```
+
+Or use [export.sh](./src/export.sh):
+
+```sh
+$ ./src/export.sh <Binary path> <Binary>
+$ # example: ./src/export.sh ~/CTF/ chall.exe
 ```
 
 ### Headless mode

@@ -255,8 +255,8 @@ def add_function(cu, func, file_index):
 
     if options.use_decompiler:
         # TODO: thafuck, I tried with a global variable but it didn't work well...
-        linecount = sum(1 for line in open(ext_c(curr.name))) + MAGIC_OFFSET
-        with open(ext_c(curr.name), "a") as src:
+        linecount = sum(1 for line in open(ext_c(curr.name), "rb")) + MAGIC_OFFSET
+        with open(ext_c(curr.name), "ab") as src:
             res = get_decompiled_function(func)
             src.write(res.decompiledFunction.c)
 

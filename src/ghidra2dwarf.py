@@ -184,7 +184,12 @@ def add_global_variables(cu):
 
 
 def add_structures(cu):
-    # TODO
+    """
+    TODO: Why is not working correctly ?
+    It corrupts the .debug_info section
+    for s in curr.dataTypeManager.allStructures:
+        add_type(cu, s)
+    """
     pass
 
 
@@ -329,7 +334,7 @@ def add_struct_type(cu, struct):
         member_die = dwarf_new_die(dbg, DW_TAG_member, die, None, None, None, err)
         member_type_die = add_type(cu, c.dataType)
         dwarf_add_AT_reference(dbg, member_die, DW_AT_type, member_type_die, err)
-        dwarf_add_AT_name(member_die, c.dataType.name, err)
+        dwarf_add_AT_name(member_die, c.fieldName, err)
 
         loc_expr = dwarf_new_expr(dbg, err)
         if dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0, err) == DW_DLV_NOCOUNT:

@@ -2,15 +2,14 @@
 
 BINARY_PATH=$1
 BINARY=$2
+BINARY_NEW=${BINARY}_dbg
 
-echo ${BINARY_PATH}
-echo ${BINARY}
-mv /tmp/debug_info ${BINARY_PATH}/.debug_info
-mv /tmp/debug_abbrev ${BINARY_PATH}/.debug_abbrev
-mv /tmp/debug_line ${BINARY_PATH}/.debug_line
-mv ${BINARY}.c $BINARY_PATH
+echo ${BINARY_PATH} ${BINARY}
 cd $BINARY_PATH
-cp $BINARY ${BINARY}.sym.exe
-objcopy --add-section .debug_info=.debug_info ${BINARY}.sym.exe
-objcopy --add-section .debug_line=.debug_line ${BINARY}.sym.exe
-objcopy --add-section .debug_abbrev=.debug_abbrev ${BINARY}.sym.exe
+cp $BINARY $BINARY_NEW
+# Remove unneded sections...
+objcopy -g $BINARY_NEW
+objcopy --add-section .debug_info=.debug_info $BINARY_NEW
+objcopy --add-section .debug_line=.debug_line $BINARY_NEW
+objcopy --add-section .debug_abbrev=.debug_abbrev $BINARY_NEW
+

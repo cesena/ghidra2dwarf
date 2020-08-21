@@ -32,8 +32,16 @@ import os
 import tempfile
 
 
+curr = getCurrentProgram()
 MAGIC_OFFSET = 7
 record = {}
+script_path = os.path.split(sourceFile.absolutePath)[0]
+exe_path = os.path.split(curr.executablePath)[0]
+
+l = LibdwarfLibrary.INSTANCE
+g = globals()
+for i in LibdwarfLibrary.__dict__.keys():
+    g[i] = getattr(l, i)
 
 
 class Options:
@@ -63,22 +71,11 @@ def add_debug_info():
     path, _ = os.path.split(curr.executablePath)
     path = "."
     if options.use_decompiler:
-        if dwarf_add_AT_name(cu, ext_c(curr.name), err) is None:
+        if dwarf_add_AT_name(cu, curr.name + ".c", err) is None:
             DERROR("dwarf_add_AT_name")
         dir_index = dwarf_add_directory_decl(dbg, path, err)
-        file_index = dwarf_add_file_decl(dbg, ext_c(curr.name), dir_index, 0, 0, err)
+        file_index = dwarf_add_file_decl(dbg, curr.name + ".c", dir_index, 0, 0, err)
         dwarf_add_AT_comp_dir(cu, path, err)
-    # memory = curr.getMemory()
-    # Get sections
-    # memory.getBlocks()
-
-    # Get segments
-    # memory.getLoadedAndInitializedAddressSet()
-
-    # Get executable segments
-    # list(memory.getExecuteSet().getAddressRanges())
-
-    # However we can omit this step and directly decompile all functions
 
     for f in get_functions():
         if is_function_executable(f):
@@ -130,7 +127,11 @@ def get_decompiled_variables(decomp):
     hf = decomp.highFunction
     for s in hf.localSymbolMap.symbols:
         hv = s.highVariable
-        yield s.name, hv.dataType, s.PCAddress, hv.storage
+        # TODO: Sometimes error with custom types?
+        try:
+            yield s.name, hv.dataType, s.PCAddress, hv.storage
+        except:
+            pass
 
 
 def add_decompiler_func_info(cu, func_die, func, file_index, linecount):
@@ -241,7 +242,6 @@ def add_function(cu, func, file_index):
         DERROR("dwarf_add_expr_gen")
     if dwarf_add_AT_location_expr(dbg, die, DW_AT_frame_base, loc_expr, err) is None:
         DERROR("dwarf_add_AT_location_expr")
-    # TODO: Understand difference between c_name and mangled_name
     f_name = func.name
     if dwarf_add_AT_name(die, f_name, err) is None:
         DERROR("dwarf_add_AT_name")
@@ -252,8 +252,6 @@ def add_function(cu, func, file_index):
     f_start, f_end = get_function_range(func)
 
     t = func.returnType
-    # print f_start, f_end, type(t), t.description, func.name
-    # TODO: Fix add_type function
     ret_type_die = add_type(cu, func.returnType)
     dwarf_add_AT_reference(dbg, die, DW_AT_type, ret_type_die, err)
 
@@ -262,12 +260,11 @@ def add_function(cu, func, file_index):
 
     if options.use_decompiler:
         # TODO: thafuck, I tried with a global variable but it didn't work well...
-        linecount = sum(1 for line in open(ext_c(curr.name))) + MAGIC_OFFSET
-        with open(ext_c(curr.name), "a") as src:
+        linecount = sum(1 for line in open(ext_c(curr.name), "rb")) + MAGIC_OFFSET
+        with open(ext_c(curr.name), "ab") as src:
             res = get_decompiled_function(func)
             src.write(res.decompiledFunction.c)
 
-        # TODO: Update with current file_index and linecount
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index, err)
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, linecount, err)
         dwarf_add_line_entry(dbg, file_index, f_start.offset, linecount, 0, True, False, err)
@@ -361,18 +358,20 @@ def write_detached_dwarf_file(path):
         content = content.getByteArray(0, length)
         section_name = debug_sections[section_index]
         print section_index, section_name, length
-        file_path = os.path.join(path, section_name.lstrip("."))
+        file_path = os.path.join(path, section_name)
 
         # TODO: according to the .cpp we might get the same section_index multiple times?
         with open(file_path, "wb") as f:
             f.write(content)
             print "written", file_path
 
+
 def get_os_version():
     ver = platform.lower()
-    if ver.startswith('java'):
+    if ver.startswith("java"):
         ver = java.lang.System.getProperty("os.name").lower()
     return ver
+
 
 debug_sections = []
 # (const char *name, int size, Dwarf_Unsigned type, Dwarf_Unsigned flags, Dwarf_Unsigned link, Dwarf_Unsigned info, Dwarf_Unsigned *sect_name_symbol_index, void *userdata, int *)
@@ -383,47 +382,43 @@ def info_callback(name, *args):
     return len(debug_sections) - 1
 
 
-ext_c = lambda s: s + ".c"
-ext_dbg = lambda s: s + ".dbg"
+def ext_c(s):
+    os_type = get_os_version()
+    if os_type == "linux":
+        return exe_path + "/" + s + ".c"
+    elif "win" in os_type:
+        return exe_path + "\\" + s + ".c"
 
-l = LibdwarfLibrary.INSTANCE
-g = globals()
-for i in LibdwarfLibrary.__dict__.keys():
-    g[i] = getattr(l, i)
 
-curr = getCurrentProgram()
-decompiler = generate_decomp_interface()
-register_mappings, stack_register_dwarf = generate_register_mappings()
+if __name__ == "__main__":
+    decompiler = generate_decomp_interface()
+    register_mappings, stack_register_dwarf = generate_register_mappings()
+    dbg = PointerByReference()
+    err = PointerByReference()
+    dwarf_producer_init(
+        DW_DLC_WRITE | DW_DLC_SYMBOLIC_RELOCATIONS | DW_DLC_POINTER64 | DW_DLC_OFFSET32 | DW_DLC_TARGET_LITTLEENDIAN,
+        info_callback,
+        None,
+        None,
+        None,
+        "x86_64",
+        "V2",
+        None,
+        dbg,
+        err,
+    )
+    with open(ext_c(curr.name), "w") as f:
+        f.write("\n")
+    dbg = Dwarf_P_Debug(dbg.value)
+    options = Options(use_dec=True)
+    add_debug_info()
 
-dbg = PointerByReference()
-err = PointerByReference()
-dwarf_producer_init(
-    DW_DLC_WRITE | DW_DLC_SYMBOLIC_RELOCATIONS | DW_DLC_POINTER64 | DW_DLC_OFFSET32 | DW_DLC_TARGET_LITTLEENDIAN,
-    info_callback,
-    None,
-    None,
-    None,
-    "x86_64",
-    "V2",
-    None,
-    dbg,
-    err,
-)
-with open(ext_c(curr.name), "w") as f:
-    f.write("\n")
-dbg = Dwarf_P_Debug(dbg.value)
-options = Options(use_dec=True)
-add_debug_info()
+    write_detached_dwarf_file(exe_path)
+    dwarf_producer_finish(dbg, None)
 
-write_detached_dwarf_file(tempfile.gettempdir())
-dwarf_producer_finish(dbg, None)
-
-os_type = get_os_version()
-script_path = os.path.split(sourceFile.absolutePath)[0]
-exe_path = os.path.split(curr.executablePath)[0]
-
-if os_type == "linux":
-    subprocess.call([script_path + "/export.sh", exe_path, curr.name])
-elif "win" in os_type:
-    subprocess.call([script_path + "\\export.bat", exe_path, curr.name])
+    os_type = get_os_version()
+    if os_type == "linux":
+        subprocess.call([script_path + "/export.sh", exe_path, curr.name])
+    elif "win" in os_type:
+        subprocess.call([script_path + "\\export.bat", exe_path, curr.name])
 

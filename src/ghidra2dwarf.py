@@ -43,6 +43,7 @@ g = globals()
 for i in LibdwarfLibrary.__dict__.keys():
     g[i] = getattr(l, i)
 
+
 class Options:
     def __init__(self, use_dec=False, only_dec_nam_fun=False, att_deb_inf=False, verbose=False):
         self.use_decompiler = use_dec
@@ -126,7 +127,11 @@ def get_decompiled_variables(decomp):
     hf = decomp.highFunction
     for s in hf.localSymbolMap.symbols:
         hv = s.highVariable
-        yield s.name, hv.dataType, s.PCAddress, hv.storage
+        # TODO: Sometimes error with custom types?
+        try:
+            yield s.name, hv.dataType, s.PCAddress, hv.storage
+        except:
+            pass
 
 
 def add_decompiler_func_info(cu, func_die, func, file_index, linecount):
@@ -179,7 +184,12 @@ def add_global_variables(cu):
 
 
 def add_structures(cu):
-    # TODO
+    """
+    TODO: Why is not working correctly ?
+    It corrupts the .debug_info section
+    for s in curr.dataTypeManager.allStructures:
+        add_type(cu, s)
+    """
     pass
 
 
@@ -324,7 +334,7 @@ def add_struct_type(cu, struct):
         member_die = dwarf_new_die(dbg, DW_TAG_member, die, None, None, None, err)
         member_type_die = add_type(cu, c.dataType)
         dwarf_add_AT_reference(dbg, member_die, DW_AT_type, member_type_die, err)
-        dwarf_add_AT_name(member_die, c.dataType.name, err)
+        dwarf_add_AT_name(member_die, c.fieldName, err)
 
         loc_expr = dwarf_new_expr(dbg, err)
         if dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0, err) == DW_DLV_NOCOUNT:
@@ -360,11 +370,13 @@ def write_detached_dwarf_file(path):
             f.write(content)
             print "written", file_path
 
+
 def get_os_version():
     ver = platform.lower()
-    if ver.startswith('java'):
+    if ver.startswith("java"):
         ver = java.lang.System.getProperty("os.name").lower()
     return ver
+
 
 debug_sections = []
 # (const char *name, int size, Dwarf_Unsigned type, Dwarf_Unsigned flags, Dwarf_Unsigned link, Dwarf_Unsigned info, Dwarf_Unsigned *sect_name_symbol_index, void *userdata, int *)

@@ -8,7 +8,7 @@ Ghidra2Dwarf is a ghidra plugin that allows to exports informations (such as fun
 decompiled code, types) from ghidra to dwarf sections inside ELF binaries.
 
 More specifically it exports inside a source file named `${program}.c` all the decompiled
-functions, and create an ELF binary named `${program}.sym.exe` that can be used to
+functions, and create an ELF binary named `${program}_dbg` that can be used to
 do source code level debugging.
 
 Example:
@@ -61,10 +61,16 @@ In windows objcopy.exe is not working, so you need to do the last step on a *nix
 shell:
 
 ```sh
-cp ${BINARY} ${BINARY}.sym.exe
-objcopy --add-section .debug_info=.debug_info ${BINARY}.sym.exe
-objcopy --add-section .debug_line=.debug_line ${BINARY}.sym.exe
-objcopy --add-section .debug_abbrev=.debug_abbrev ${BINARY}.sym.exe
+BINARY_NEW=${BINARY}_dbg
+cp $BINARY $BINARY_NEW
+
+echo '[*] Removing unneeded debug sections'
+objcopy -g $BINARY_NEW
+
+echo '[*] Adding the debug sections'
+objcopy --add-section .debug_info=.debug_info $BINARY_NEW
+objcopy --add-section .debug_line=.debug_line $BINARY_NEW
+objcopy --add-section .debug_abbrev=.debug_abbrev $BINARY_NEW
 ```
 
 Or use [export.sh](./src/export.sh):
@@ -81,9 +87,9 @@ $ # example: ./src/export.sh ~/CTF/ chall.exe
 If you saved the project and ghidra is closed, you can launch [ghidra2dwarf.sh](./src/ghidra2dwarf.sh)
 to run ghidra in headless mode and export the dwarf informations:
 
-```
-./src/ghidra2dwarf.sh <Project directory> <Project name> <Binary path> <Binary>
-# Example: ./src/ghidra2dwarf.sh ~/.local/share/ghidra/ TEST ~/CTF/ chall
+```sh
+$ ./src/ghidra2dwarf.sh <Project directory> <Project name> <Binary path> <Binary>
+$ # Example: ./src/ghidra2dwarf.sh ~/.local/share/ghidra/ TEST ~/CTF/ chall
 ```
 
 #### Windows

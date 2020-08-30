@@ -194,6 +194,7 @@ def add_structures(cu):
 
 
 def add_variable(cu, func_die, name, datatype, addr, storage):
+    # TODO: add varaible starting from addr
     var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None, err)
     type_die = add_type(cu, datatype)
 
@@ -216,7 +217,8 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
             if dwarf_add_expr_gen(expr, DW_OP_regx, reg_dwarf, 0, err) == DW_DLV_NOCOUNT:
                 DERROR("dwarf_add_expr_gen")
         elif varnode_addr.isStackAddress():
-            if dwarf_add_expr_gen(expr, stack_register_dwarf, varnode_addr.offset, 0, err) == DW_DLV_NOCOUNT:
+            # TODO: properly get register size and figure out if this is always correct
+            if dwarf_add_expr_gen(expr, DW_OP_fbreg, varnode_addr.offset - varnode_addr.pointerSize, 0, err) == DW_DLV_NOCOUNT:
                 DERROR("dwarf_add_expr_gen")
         elif varnode_addr.isMemoryAddress():
             # TODO: globals?

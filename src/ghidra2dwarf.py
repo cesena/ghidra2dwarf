@@ -18,7 +18,7 @@ from ghidra.program.database.data import PointerDB
 from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType
 from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 from ghidra.util.task import ConsoleTaskMonitor
-
+from ghidra.program.model.address import Address, GenericAddress
 
 from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference, LongByReference
@@ -59,6 +59,12 @@ class Options:
 def get_libdwarf_err():
     derr = Dwarf_Error(err.value)
     return dwarf_errmsg(derr)
+
+
+def is_pie(curr):
+    with open(curr.executablePath, "rb") as f:
+        f.seek(0x10)
+        return f.read(1) == "\x03"
 
 
 def DERROR(func):
@@ -155,7 +161,7 @@ def add_decompiler_func_info(cu, func_die, func, file_index, linecount):
         # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
         if lowest_addr:
             dwarf_add_line_entry(
-                dbg, file_index, lowest_addr.offset, l.lineNumber + linecount - MAGIC_OFFSET, 0, True, False, err
+                dbg, file_index, lowest_addr.offset, l.lineNumber + linecount - MAGIC_OFFSET, 0, True, False, err,
             )
 
 
@@ -419,6 +425,7 @@ if __name__ == "__main__":
     dbg = Dwarf_P_Debug(dbg.value)
     options = Options(use_dec=True)
     add_debug_info()
+    print is_pie(curr)
 
     write_detached_dwarf_file(exe_path)
     dwarf_producer_finish(dbg, None)
@@ -428,4 +435,3 @@ if __name__ == "__main__":
         subprocess.call([script_path + "/export.sh", exe_path, curr.name])
     elif "win" in os_type:
         subprocess.call([script_path + "\\export.bat", exe_path, curr.name])
-

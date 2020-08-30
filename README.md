@@ -98,9 +98,5 @@ TODO
 
 ## Known issues
 
-* If the ELF binary is PIE, you need to rebase the memory map to the address `0`:
-
-![](./img/rebase-pie.gif)
-
 * Sometimes you get an `IndexError`, try to re-run the script until it works.
 

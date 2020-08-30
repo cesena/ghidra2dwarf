@@ -18,7 +18,7 @@ from ghidra.program.database.data import PointerDB
 from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType
 from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 from ghidra.util.task import ConsoleTaskMonitor
-from ghidra.program.model.address import Address, GenericAddress
+from ghidra.app.util.opinion import ElfLoader
 
 from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference, LongByReference
@@ -33,6 +33,11 @@ import tempfile
 
 
 curr = getCurrentProgram()
+is_pie = curr.relocationTable.relocatable
+if is_pie:
+    orig_base = ElfLoader.getElfOriginalImageBase(curr)
+    curr.setImageBase(toAddr(orig_base), False)
+
 MAGIC_OFFSET = 7
 record = {}
 script_path = os.path.split(sourceFile.absolutePath)[0]
@@ -59,11 +64,6 @@ class Options:
 def get_libdwarf_err():
     derr = Dwarf_Error(err.value)
     return dwarf_errmsg(derr)
-
-
-def is_pie(curr):
-    offset = 0x10 + curr.imageBase.offset
-    return curr.memory.getByte(curr.addressFactory.defaultAddressSpace.getAddress(offset)) == 3
 
 
 def DERROR(func):

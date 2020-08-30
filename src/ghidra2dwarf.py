@@ -62,9 +62,8 @@ def get_libdwarf_err():
 
 
 def is_pie(curr):
-    with open(curr.executablePath, "rb") as f:
-        f.seek(0x10)
-        return f.read(1) == "\x03"
+    offset = 0x10 + curr.imageBase.offset
+    return curr.memory.getByte(curr.addressFactory.defaultAddressSpace.getAddress(offset)) == 3
 
 
 def DERROR(func):

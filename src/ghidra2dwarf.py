@@ -424,7 +424,6 @@ if __name__ == "__main__":
     dbg = Dwarf_P_Debug(dbg.value)
     options = Options(use_dec=True)
     add_debug_info()
-    print is_pie(curr)
 
     write_detached_dwarf_file(exe_path)
     dwarf_producer_finish(dbg, None)

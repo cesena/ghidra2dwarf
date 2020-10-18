@@ -15,7 +15,7 @@ from ghidra.app.decompiler import DecompInterface, DecompileOptions
 from ghidra.app.util.bin.format.elf import ElfSymbolTable
 from ghidra.app.decompiler.component import DecompilerUtils
 from ghidra.program.database.data import PointerDB
-from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType
+from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType, BooleanDataType, CharDataType, AbstractIntegerDataType, AbstractFloatDataType, AbstractComplexDataType
 from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
@@ -295,13 +295,10 @@ def add_type(cu, t):
 
     if isinstance(t, Pointer):
         return add_ptr_type(cu, t)
-    elif isinstance(t, DefaultDataType):
-        # TODO: an example of DefaultDataType is `undefined`, The following line is not definitive
-        return add_default_type(cu, t)
-    elif isinstance(t, BuiltInDataType):
-        return add_default_type(cu, t)
     elif isinstance(t, Structure):
         return add_struct_type(cu, t)
+    elif isinstance(t, (BuiltInDataType, DefaultDataType)):
+        return add_default_type(cu, t)
     else:
         try:
             return add_default_type(cu, t)
@@ -315,6 +312,23 @@ def add_default_type(cu, t):
     record[t.name] = die
     dwarf_add_AT_name(die, t.name, err)
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err)
+
+    # type encoding dwarfstd.org/doc/DWARF4.pdf#page=91
+    if isinstance(t, BooleanDataType):
+        encoding = DW_ATE_boolean
+    elif isinstance(t, CharDataType):
+        is_char_signed = t.dataTypeManager.dataOrganization.signedChar
+        encoding = DW_ATE_signed_char if is_char_signed else DW_ATE_unsigned_char
+    elif isinstance(t, AbstractIntegerDataType):
+        encoding = DW_ATE_signed if t.signed else DW_ATE_unsigned
+    elif isinstance(t, AbstractFloatDataType):
+        encoding = DW_ATE_float
+    elif isinstance(t, AbstractComplexDataType):
+        encoding = DW_ATE_complex_float
+    else:
+        # if I forgot a type it's probably ok for it to be encoded as an unsigned integer
+        encoding = DW_ATE_unsigned
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_encoding, encoding, err)
     return die
 
 
@@ -328,6 +342,7 @@ def add_ptr_type(cu, t):
         DERROR("dwarf_add_AT_reference child")
     if dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, 8, err) is None:
         DERROR("dwarf_add_AT_unsigned_const")
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_encoding, DW_ATE_address, err)
     return die
 
 

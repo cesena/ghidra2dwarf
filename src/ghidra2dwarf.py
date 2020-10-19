@@ -20,12 +20,11 @@ from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
 
+from elf import add_sections_to_elf
 from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
-
-from sys import stderr, stdout, argv, platform
 
 import subprocess
 import os
@@ -40,8 +39,9 @@ if is_pie:
 
 MAGIC_OFFSET = 7
 record = {}
-script_path = os.path.split(sourceFile.absolutePath)[0]
-exe_path = os.path.split(curr.executablePath)[0]
+exe_path = os.path.join(*os.path.split(curr.executablePath))
+out_path = exe_path + '_dbg'
+decompiled_c_path = exe_path + '.ghidra.c'
 
 l = LibdwarfLibrary.INSTANCE
 g = globals()
@@ -73,14 +73,13 @@ def DERROR(func):
 def add_debug_info():
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string, err)
     cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None, err)
-    path, _ = os.path.split(curr.executablePath)
-    path = "."
     if options.use_decompiler:
-        if dwarf_add_AT_name(cu, curr.name + ".c", err) is None:
+        c_file_name = os.path.split(decompiled_c_path)[1]
+        if dwarf_add_AT_name(cu, c_file_name, err) is None:
             DERROR("dwarf_add_AT_name")
-        dir_index = dwarf_add_directory_decl(dbg, path, err)
-        file_index = dwarf_add_file_decl(dbg, curr.name + ".c", dir_index, 0, 0, err)
-        dwarf_add_AT_comp_dir(cu, path, err)
+        dir_index = dwarf_add_directory_decl(dbg, '.', err)
+        file_index = dwarf_add_file_decl(dbg, c_file_name, dir_index, 0, 0, err)
+        dwarf_add_AT_comp_dir(cu, '.', err)
 
     for f in get_functions():
         if is_function_executable(f):
@@ -275,8 +274,8 @@ def add_function(cu, func, file_index):
 
     if options.use_decompiler:
         # TODO: thafuck, I tried with a global variable but it didn't work well...
-        linecount = sum(1 for line in open(ext_c(curr.name), "rb")) + MAGIC_OFFSET
-        with open(ext_c(curr.name), "ab") as src:
+        linecount = sum(1 for line in open(decompiled_c_path, "rb")) + MAGIC_OFFSET
+        with open(decompiled_c_path, "ab") as src:
             res = get_decompiled_function(func)
             src.write(res.decompiledFunction.c)
 
@@ -370,12 +369,13 @@ def add_struct_type(cu, struct):
     return die
 
 
-def write_detached_dwarf_file(path):
+def generate_dwarf_sections():
     section_count = dwarf_transform_to_disk_form(dbg, err)
     if section_count == DW_DLV_NOCOUNT:
         ERROR("dwarf_transform_to_disk_form")
-
     print "section_count", section_count
+
+    sections = []
     for i in xrange(section_count):
         section_index = LongByReference()
         length = LongByReference()
@@ -385,39 +385,22 @@ def write_detached_dwarf_file(path):
 
         section_index = section_index.value
         length = length.value
-        content = content.getByteArray(0, length)
-        section_name = debug_sections[section_index]
-        print section_index, section_name, length
-        file_path = os.path.join(path, section_name)
-
+        content = bytearray(content.getByteArray(0, length))
         # TODO: according to the .cpp we might get the same section_index multiple times?
-        with open(file_path, "wb") as f:
-            f.write(content)
-            print "written", file_path
+        section_name = debug_sections[section_index]
+        sections.append((section_name, content))
+        print section_index, section_name, length
 
-
-def get_os_version():
-    ver = platform.lower()
-    if ver.startswith("java"):
-        ver = java.lang.System.getProperty("os.name").lower()
-    return ver
+    return sections
 
 
 debug_sections = []
 # (const char *name, int size, Dwarf_Unsigned type, Dwarf_Unsigned flags, Dwarf_Unsigned link, Dwarf_Unsigned info, Dwarf_Unsigned *sect_name_symbol_index, void *userdata, int *)
 def info_callback(name, *args):
-    name = name.getString(0)
+    name = str(name.getString(0))
     print "info_callback", name
     debug_sections.append(name)
     return len(debug_sections) - 1
-
-
-def ext_c(s):
-    os_type = get_os_version()
-    if os_type == "linux":
-        return exe_path + "/" + s + ".c"
-    elif "win" in os_type:
-        return exe_path + "\\" + s + ".c"
 
 
 if __name__ == "__main__":
@@ -437,17 +420,13 @@ if __name__ == "__main__":
         dbg,
         err,
     )
-    with open(ext_c(curr.name), "w") as f:
+    # TODO: generate the C file in a better way
+    with open(decompiled_c_path, "w") as f:
         f.write("\n")
     dbg = Dwarf_P_Debug(dbg.value)
     options = Options(use_dec=True)
     add_debug_info()
-
-    write_detached_dwarf_file(exe_path)
+    sections = generate_dwarf_sections()
     dwarf_producer_finish(dbg, None)
 
-    os_type = get_os_version()
-    if os_type == "linux":
-        subprocess.call([script_path + "/export.sh", exe_path, curr.name])
-    elif "win" in os_type:
-        subprocess.call([script_path + "\\export.bat", exe_path, curr.name])
+    add_sections_to_elf(exe_path, out_path, sections)

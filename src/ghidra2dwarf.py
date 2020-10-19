@@ -199,6 +199,13 @@ def add_structures(cu):
 
 
 def add_variable(cu, func_die, name, datatype, addr, storage):
+    # TODO: there could be more than one varnode, what does it even mean?
+    varnode = storage.firstVarnode
+    # It looks like sometimes ghidra creates a fake/temp variable without any varnodes, it should be ok to ignore it
+    if varnode is None:
+        return None
+    varnode_addr = varnode.getAddress()
+
     # TODO: add varaible starting from addr
     var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None, err)
     type_die = add_type(cu, datatype)
@@ -208,10 +215,6 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
 
     if dwarf_add_AT_name(var_die, name, err) is None:
         DERROR("dwarf_add_AT_name")
-
-    # TODO: there could be more than one varnode, what does it even mean?
-    varnode = storage.firstVarnode
-    varnode_addr = varnode.getAddress()
 
     expr = dwarf_new_expr(dbg, err)
 

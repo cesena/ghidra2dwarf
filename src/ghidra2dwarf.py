@@ -21,7 +21,7 @@ from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
 
 from elf import add_sections_to_elf
-from libdwarf import LibdwarfLibrary
+from libdwarf import LibdwarfLibrary, Dwarf_Relocation_Data_s
 from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
@@ -369,48 +369,49 @@ def add_struct_type(cu, struct):
     return die
 
 
+class SectionsCallback(Dwarf_Callback_Func):
+    def __init__(self):
+        self.sections = []
+
+    def apply(self, name, *args):
+        name = str(name.getString(0))
+        print "info_callback", name
+        self.sections.append(name)
+        return len(self.sections) - 1
+
 def generate_dwarf_sections():
     section_count = dwarf_transform_to_disk_form(dbg, err)
     if section_count == DW_DLV_NOCOUNT:
-        ERROR("dwarf_transform_to_disk_form")
+        DERROR("dwarf_transform_to_disk_form")
     print "section_count", section_count
 
-    sections = []
+    sections = {}
     for i in xrange(section_count):
         section_index = LongByReference()
         length = LongByReference()
         content = dwarf_get_section_bytes(dbg, i, section_index, length, err)
         if content is None:
-            ERROR("dwarf_get_section_bytes")
+            DERROR("dwarf_get_section_bytes")
 
         section_index = section_index.value
         length = length.value
         content = bytearray(content.getByteArray(0, length))
-        # TODO: according to the .cpp we might get the same section_index multiple times?
-        section_name = debug_sections[section_index]
-        sections.append((section_name, content))
+        section_name = sections_callback.sections[section_index]
+        if section_name not in sections:
+            sections[section_name] = ''
+        sections[section_name] += content    
         print section_index, section_name, length
-
-    return sections
-
-
-debug_sections = []
-# (const char *name, int size, Dwarf_Unsigned type, Dwarf_Unsigned flags, Dwarf_Unsigned link, Dwarf_Unsigned info, Dwarf_Unsigned *sect_name_symbol_index, void *userdata, int *)
-def info_callback(name, *args):
-    name = str(name.getString(0))
-    print "info_callback", name
-    debug_sections.append(name)
-    return len(debug_sections) - 1
-
+    return sections.items()
 
 if __name__ == "__main__":
     decompiler = generate_decomp_interface()
     register_mappings, stack_register_dwarf = generate_register_mappings()
     dbg = PointerByReference()
     err = PointerByReference()
+    sections_callback = SectionsCallback()
     dwarf_producer_init(
         DW_DLC_WRITE | DW_DLC_SYMBOLIC_RELOCATIONS | DW_DLC_POINTER64 | DW_DLC_OFFSET32 | DW_DLC_TARGET_LITTLEENDIAN,
-        info_callback,
+        sections_callback,
         None,
         None,
         None,

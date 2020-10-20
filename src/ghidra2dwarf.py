@@ -42,6 +42,7 @@ record = {}
 exe_path = os.path.join(*os.path.split(curr.executablePath))
 out_path = exe_path + '_dbg'
 decompiled_c_path = exe_path + '.ghidra.c'
+decomp_lines = []
 
 l = LibdwarfLibrary.INSTANCE
 g = globals()
@@ -138,7 +139,7 @@ def get_decompiled_variables(decomp):
             pass
 
 
-def add_decompiler_func_info(cu, func_die, func, file_index, linecount):
+def add_decompiler_func_info(cu, func_die, func, file_index, func_line):
     # https://ghidra.re/ghidra_docs/api/ghidra/app/decompiler/DecompileResults.html
     # print func.allVariables
     decomp = get_decompiled_function(func)
@@ -158,9 +159,7 @@ def add_decompiler_func_info(cu, func_die, func, file_index, linecount):
         # dwarf_lne_set_address(dbg, lowest_line_addr, 0, &err)
         # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
         if lowest_addr:
-            dwarf_add_line_entry(
-                dbg, file_index, lowest_addr.offset, l.lineNumber + linecount - MAGIC_OFFSET, 0, True, False, err,
-            )
+            dwarf_add_line_entry(dbg, file_index, lowest_addr.offset, l.lineNumber + func_line - 1, 0, True, False, err,)
 
 
 def get_functions():
@@ -189,7 +188,10 @@ def add_global_variables(cu):
 
 def add_structures(cu):
     """
-    TODO: Why is not working correctly ?
+    # TODO: Is this useless?
+    Add all the structures defined in Ghidra, since every variable decompiled has already
+    a type associated, this function probably is useless
+
     It corrupts the .debug_info section
     for s in curr.dataTypeManager.allStructures:
         add_type(cu, s)
@@ -273,22 +275,26 @@ def add_function(cu, func, file_index):
     dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end.offset - 1, 0, err)
 
     if options.use_decompiler:
-        # TODO: thafuck, I tried with a global variable but it didn't work well...
-        linecount = sum(1 for line in open(decompiled_c_path, "rb")) + MAGIC_OFFSET
-        with open(decompiled_c_path, "ab") as src:
-            res = get_decompiled_function(func)
-            src.write(res.decompiledFunction.c)
+        func_line = len(decomp_lines) + 1
+
+        res = get_decompiled_function(func)
+        d = res.decompiledFunction.c
+        decomp_lines.extend(d.split('\n'))
 
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index, err)
-        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, linecount, err)
-        dwarf_add_line_entry(dbg, file_index, f_start.offset, linecount, 0, True, False, err)
-        add_decompiler_func_info(cu, die, func, file_index, linecount)
-        pass
+        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line, err)
+        dwarf_add_line_entry(dbg, file_index, f_start.offset, func_line, 0, True, False, err)
+        add_decompiler_func_info(cu, die, func, file_index, func_line)
     else:
         # TODO: NEVER?
         # add_disassembler_func_info(cu, die, func)
         pass
     return die
+
+
+def write_source():
+    with open(decompiled_c_path, "wb") as src:
+        src.write('\n'.join(decomp_lines))
 
 
 def add_type(cu, t):
@@ -421,13 +427,10 @@ if __name__ == "__main__":
         dbg,
         err,
     )
-    # TODO: generate the C file in a better way
-    with open(decompiled_c_path, "w") as f:
-        f.write("\n")
     dbg = Dwarf_P_Debug(dbg.value)
     options = Options(use_dec=True)
     add_debug_info()
+    write_source()
     sections = generate_dwarf_sections()
     dwarf_producer_finish(dbg, None)
-
     add_sections_to_elf(exe_path, out_path, sections)

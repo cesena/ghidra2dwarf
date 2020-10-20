@@ -32,10 +32,9 @@ import os
 curr = getCurrentProgram()
 image_base = curr.imageBase.offset
 is_pie = curr.relocationTable.relocatable
-if is_pie:
-    orig_base = ElfLoader.getElfOriginalImageBase(curr)
-    # this breaks stuff, we changed approach and started using get_real_address
-    # curr.setImageBase(toAddr(orig_base), False)
+orig_base = ElfLoader.getElfOriginalImageBase(curr)
+# this breaks stuff, we changed approach and started using get_real_address
+# curr.setImageBase(toAddr(orig_base), False)
 
 def get_real_address(addr):
     return addr.offset - image_base + orig_base
@@ -369,7 +368,7 @@ def add_struct_type(cu, struct):
         dwarf_add_AT_name(member_die, c.fieldName, err)
 
         loc_expr = dwarf_new_expr(dbg, err)
-        if dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, get_real_address(c), 0, err) == DW_DLV_NOCOUNT:
+        if dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0, err) == DW_DLV_NOCOUNT:
             DERROR("dward_add_expr_gen")
 
         if dwarf_add_AT_location_expr(dbg, member_die, DW_AT_data_member_location, loc_expr, err) is None:

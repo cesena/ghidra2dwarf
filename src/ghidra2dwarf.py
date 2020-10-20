@@ -26,18 +26,20 @@ from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
-import subprocess
 import os
-import tempfile
 
 
 curr = getCurrentProgram()
+image_base = curr.imageBase.offset
 is_pie = curr.relocationTable.relocatable
 if is_pie:
     orig_base = ElfLoader.getElfOriginalImageBase(curr)
-    curr.setImageBase(toAddr(orig_base), False)
+    # this breaks stuff, we changed approach and started using get_real_address
+    # curr.setImageBase(toAddr(orig_base), False)
 
-MAGIC_OFFSET = 7
+def get_real_address(addr):
+    return addr.offset - image_base + orig_base
+
 record = {}
 exe_path = os.path.join(*os.path.split(curr.executablePath))
 out_path = exe_path + '_dbg'
@@ -152,14 +154,14 @@ def add_decompiler_func_info(cu, func_die, func, file_index, func_line):
     lines = DecompilerUtils.toLines(cmarkup)
     for l in lines:
         # TODO: multiple lines might have the same lowest address
-        addresses = [t.minAddress for t in l.allTokens if t.minAddress]
+        addresses = [get_real_address(t.minAddress) for t in l.allTokens if t.minAddress]
         lowest_addr = min(addresses) if addresses else None
-        # print lowest_addr, l
-        # TODO: is this call to dwarf_lne_set_address needed?
-        # dwarf_lne_set_address(dbg, lowest_line_addr, 0, &err)
-        # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
+
         if lowest_addr:
-            dwarf_add_line_entry(dbg, file_index, lowest_addr.offset, l.lineNumber + func_line - 1, 0, True, False, err,)
+            # TODO: is this call to dwarf_lne_set_address needed?
+            #dwarf_lne_set_address(dbg, lowest_line_addr, 0, err)
+            # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
+            dwarf_add_line_entry(dbg, file_index, lowest_addr, l.lineNumber + func_line - 1, 0, True, False, err,)
 
 
 def get_functions():
@@ -169,14 +171,14 @@ def get_functions():
 
 
 def get_function_range(func):
-    return (func.entryPoint, func.body.maxAddress)
+    return get_real_address(func.entryPoint), get_real_address(func.body.maxAddress)
 
 
 def is_function_executable(func):
     f_start, f_end = get_function_range(func)
     # Check for functions inside executable segments
     for s in curr.memory.executeSet.addressRanges:
-        if f_start.offset >= s.minAddress.offset and f_end.offset <= s.maxAddress.offset:
+        if f_start >= get_real_address(s.minAddress) and f_end <= get_real_address(s.maxAddress):
             return True
     return False
 
@@ -271,8 +273,8 @@ def add_function(cu, func, file_index):
     ret_type_die = add_type(cu, func.returnType)
     dwarf_add_AT_reference(dbg, die, DW_AT_type, ret_type_die, err)
 
-    dwarf_add_AT_targ_address(dbg, die, DW_AT_low_pc, f_start.offset, 0, err)
-    dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end.offset - 1, 0, err)
+    dwarf_add_AT_targ_address(dbg, die, DW_AT_low_pc, f_start, 0, err)
+    dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end - 1, 0, err)
 
     if options.use_decompiler:
         func_line = len(decomp_lines) + 1
@@ -283,7 +285,7 @@ def add_function(cu, func, file_index):
 
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index, err)
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line, err)
-        dwarf_add_line_entry(dbg, file_index, f_start.offset, func_line, 0, True, False, err)
+        dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False, err)
         add_decompiler_func_info(cu, die, func, file_index, func_line)
     else:
         # TODO: NEVER?
@@ -367,7 +369,7 @@ def add_struct_type(cu, struct):
         dwarf_add_AT_name(member_die, c.fieldName, err)
 
         loc_expr = dwarf_new_expr(dbg, err)
-        if dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0, err) == DW_DLV_NOCOUNT:
+        if dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, get_real_address(c), 0, err) == DW_DLV_NOCOUNT:
             DERROR("dward_add_expr_gen")
 
         if dwarf_add_AT_location_expr(dbg, member_die, DW_AT_data_member_location, loc_expr, err) is None:

@@ -21,7 +21,7 @@ from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
 
 from elf import add_sections_to_elf
-from libdwarf import LibdwarfLibrary, Dwarf_Relocation_Data_s
+from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer

@@ -1,5 +1,0 @@
-target/*
-!target/libdwarf.jar
-.classpath
-.project
-.settings/

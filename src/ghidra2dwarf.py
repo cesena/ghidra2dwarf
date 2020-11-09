@@ -349,7 +349,7 @@ def add_ptr_type(cu, t):
     child_die = add_type(cu, t.dataType)
     if dwarf_add_AT_reference(dbg, die, DW_AT_type, child_die, err) is None:
         DERROR("dwarf_add_AT_reference child")
-    if dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, 8, err) is None:
+    if dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err) is None:
         DERROR("dwarf_add_AT_unsigned_const")
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_encoding, DW_ATE_address, err)
     return die

@@ -14,11 +14,12 @@ public interface LibdwarfLibrary extends Library {
 
 	// functions
 	String dwarf_errmsg(LibdwarfLibrary.Dwarf_Error Dwarf_Error1);
+	String dwarf_errmsg_by_number(long Dwarf_Unsigned1);
 	int dwarf_producer_init(long Dwarf_Unsigned1, LibdwarfLibrary.Dwarf_Callback_Func Dwarf_Callback_Func1, LibdwarfLibrary.Dwarf_Handler Dwarf_Handler1, Pointer Dwarf_Ptr1, Pointer voidPtr1, String isa_name, String dwarf_version, String extra, PointerByReference Dwarf_P_DebugPtr1, PointerByReference Dwarf_ErrorPtr1);
 	int dwarf_pro_set_default_string_form(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, int int1, PointerByReference Dwarf_ErrorPtr1);
 	long dwarf_transform_to_disk_form(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, PointerByReference Dwarf_ErrorPtr1);
 	Pointer dwarf_get_section_bytes(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, long Dwarf_Signed1, LongByReference Dwarf_SignedPtr1, LongByReference Dwarf_UnsignedPtr1, PointerByReference Dwarf_ErrorPtr1);
-	long dwarf_producer_finish(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, PointerByReference Dwarf_ErrorPtr1);
+	int dwarf_producer_finish_a(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, PointerByReference Dwarf_ErrorPtr1);
 	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_targ_address(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, short Dwarf_Half1, long Dwarf_Unsigned1, long Dwarf_Signed1, PointerByReference Dwarf_ErrorPtr1);
 	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_unsigned_const(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, short Dwarf_Half1, long Dwarf_Unsigned1, PointerByReference Dwarf_ErrorPtr1);
 	LibdwarfLibrary.Dwarf_P_Attribute dwarf_add_AT_reference(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, short Dwarf_Half1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die2, PointerByReference Dwarf_ErrorPtr1);
@@ -31,7 +32,7 @@ public interface LibdwarfLibrary extends Library {
 	long dwarf_add_line_entry(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, long Dwarf_Unsigned1, long Dwarf_Addr1, long Dwarf_Unsigned2, long Dwarf_Signed1, int Dwarf_Bool1, int Dwarf_Bool2, PointerByReference Dwarf_ErrorPtr1);
 	long dwarf_lne_set_address(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, PointerByReference Dwarf_ErrorPtr1);
 	LibdwarfLibrary.Dwarf_P_Die dwarf_new_die(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, long Dwarf_Tag1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die2, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die3, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die4, PointerByReference Dwarf_ErrorPtr1);
-	long dwarf_add_die_to_debug(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, PointerByReference Dwarf_ErrorPtr1);
+	int dwarf_add_die_to_debug_a(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, PointerByReference Dwarf_ErrorPtr1);
 	LibdwarfLibrary.Dwarf_P_Expr dwarf_new_expr(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, PointerByReference Dwarf_ErrorPtr1);
 	long dwarf_add_expr_gen(LibdwarfLibrary.Dwarf_P_Expr Dwarf_P_Expr1, byte Dwarf_Small1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, PointerByReference Dwarf_ErrorPtr1);
 	long dwarf_add_expr_addr_b(LibdwarfLibrary.Dwarf_P_Expr Dwarf_P_Expr1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, PointerByReference Dwarf_ErrorPtr1);
@@ -111,7 +112,9 @@ public interface LibdwarfLibrary extends Library {
 	public static final int DW_DLC_SYMBOLIC_RELOCATIONS = (int)0x04000000;
 	public static final int DW_DLC_TARGET_LITTLEENDIAN = (int)0x00100000;
 	public static final int DW_DLC_WRITE = (int)1;
-	public static final long DW_DLV_NOCOUNT = -1;
+	public static final Pointer DW_DLV_BADADDR = new Pointer((long)(~0));
+	public static final long DW_DLV_NOCOUNT = (long)-1;
+	public static final int DW_DLV_OK = (int)0;
 	public static final int DW_FORM_string = (int)0x08;
 	public static final int DW_FRAME_HIGHEST_NORMAL_REGISTER = (int)188;
 	public static final int DW_FRAME_LAST_REG_NUM = (int)(DW_FRAME_HIGHEST_NORMAL_REGISTER + 3);

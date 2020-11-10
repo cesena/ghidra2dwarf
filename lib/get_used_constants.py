@@ -3,7 +3,7 @@
 import re
 
 script = open('../src/ghidra2dwarf.py', 'r').read()
-javalib = open('src/main/java/libdwarf/LibdwarfLibrary.java.old', 'r').read()
+javalib = open('LibdwarfLibrary_jnarated.java', 'r').read()
 
 BLACKLIST = {'DW_OP_breg'}
 FORCE_ADD = {r'DW_OP_breg\d+'}
@@ -14,6 +14,8 @@ if 'DW_FRAME_LAST_REG_NUM' in constants:
 l = []
 for c in sorted(constants):
 	lines = re.findall(r'public static final \w+ %s = .+;' % c, javalib)
+	if not lines:
+		assert False, '%s not found' % c
 	l.extend(lines)
 
 print('\n'.join(l))

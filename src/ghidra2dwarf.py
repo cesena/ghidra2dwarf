@@ -39,16 +39,63 @@ orig_base = ElfLoader.getElfOriginalImageBase(curr)
 def get_real_address(addr):
     return addr.offset - image_base + orig_base
 
+def get_libdwarf_err():
+    derr = Dwarf_Error(err.value)
+    print derr
+    return dwarf_errmsg(derr)
+
 record = {}
 exe_path = os.path.join(*os.path.split(curr.executablePath))
 out_path = exe_path + '_dbg'
 decompiled_c_path = exe_path + '.ghidra.c'
 decomp_lines = []
 
+ERR_IS_NOT_OK = lambda e: e != DW_DLV_OK
+ERR_IS_NOCOUNT = lambda e: e == DW_DLV_NOCOUNT
+ERR_IS_BADADDR = lambda e: e is None or e == DW_DLV_BADADDR or (hasattr(e, 'pointer') and e.pointer == DW_DLV_BADADDR)
+DWARF_FUNCTIONS = {
+    'dwarf_producer_init': ERR_IS_NOT_OK,
+    'dwarf_pro_set_default_string_form': ERR_IS_NOT_OK,
+    'dwarf_transform_to_disk_form': ERR_IS_NOCOUNT,
+    'dwarf_get_section_bytes': ERR_IS_BADADDR,
+    'dwarf_producer_finish_a': ERR_IS_NOT_OK,
+    'dwarf_add_AT_targ_address': ERR_IS_BADADDR,
+    'dwarf_add_AT_unsigned_const': ERR_IS_BADADDR,
+    'dwarf_add_AT_reference': ERR_IS_BADADDR,
+    'dwarf_add_AT_location_expr': ERR_IS_BADADDR,
+    'dwarf_add_AT_string': ERR_IS_BADADDR,
+    'dwarf_add_AT_comp_dir': ERR_IS_BADADDR,
+    'dwarf_add_AT_name': ERR_IS_BADADDR,
+    'dwarf_add_directory_decl': ERR_IS_NOCOUNT,
+    'dwarf_add_file_decl': ERR_IS_NOCOUNT,
+    'dwarf_add_line_entry': ERR_IS_NOCOUNT,
+    'dwarf_lne_set_address': ERR_IS_NOCOUNT,
+    'dwarf_new_die': ERR_IS_BADADDR,
+    'dwarf_add_die_to_debug_a': ERR_IS_NOT_OK,
+    'dwarf_new_expr': ERR_IS_BADADDR,
+    'dwarf_add_expr_gen': ERR_IS_NOCOUNT,
+}
+
+def generate_fun_wrapper(name, fun):
+    def wrapper(*args):
+        r = fun(*(args + (err, )))
+        error_check = DWARF_FUNCTIONS[name]
+        if error_check(r):
+            # TODO: dwarf_errmsg (hence get_libdwarf_err) is broken for some reason
+            # assert False, "%s failed: %s" % (name, get_libdwarf_err())
+            assert False, "%s failed. Returned %r" % (name, r)
+        return r
+    return wrapper
+
 l = LibdwarfLibrary.INSTANCE
 g = globals()
-for i in LibdwarfLibrary.__dict__.keys():
-    g[i] = getattr(l, i)
+for name in LibdwarfLibrary.__dict__.keys():
+    if name in DWARF_FUNCTIONS:
+        fun = getattr(l, name)
+        g[name] = generate_fun_wrapper(name, fun)
+    else:
+        g[name] = getattr(l, name)
+
 
 
 class Options:
@@ -63,25 +110,16 @@ class Options:
         self.export_options = 0
 
 
-def get_libdwarf_err():
-    derr = Dwarf_Error(err.value)
-    return dwarf_errmsg(derr)
-
-
-def DERROR(func):
-    assert False, "%s failed: %s" % (func, get_libdwarf_err())
-
 
 def add_debug_info():
-    dwarf_pro_set_default_string_form(dbg, DW_FORM_string, err)
-    cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None, err)
+    dwarf_pro_set_default_string_form(dbg, DW_FORM_string)
+    cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None)
     if options.use_decompiler:
         c_file_name = os.path.split(decompiled_c_path)[1]
-        if dwarf_add_AT_name(cu, c_file_name, err) is None:
-            DERROR("dwarf_add_AT_name")
-        dir_index = dwarf_add_directory_decl(dbg, '.', err)
-        file_index = dwarf_add_file_decl(dbg, c_file_name, dir_index, 0, 0, err)
-        dwarf_add_AT_comp_dir(cu, '.', err)
+        dwarf_add_AT_name(cu, c_file_name)
+        dir_index = dwarf_add_directory_decl(dbg, '.')
+        file_index = dwarf_add_file_decl(dbg, c_file_name, dir_index, 0, 0)
+        dwarf_add_AT_comp_dir(cu, '.')
 
     for f in get_functions():
         if is_function_executable(f):
@@ -89,7 +127,7 @@ def add_debug_info():
         pass
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
-    dwarf_add_die_to_debug(dbg, cu, err)
+    dwarf_add_die_to_debug_a(dbg, cu)
     add_global_variables(cu)
     add_structures(cu)
 
@@ -158,9 +196,9 @@ def add_decompiler_func_info(cu, func_die, func, file_index, func_line):
 
         if lowest_addr:
             # TODO: is this call to dwarf_lne_set_address needed?
-            #dwarf_lne_set_address(dbg, lowest_line_addr, 0, err)
+            #dwarf_lne_set_address(dbg, lowest_line_addr, 0)
             # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
-            dwarf_add_line_entry(dbg, file_index, lowest_addr, l.lineNumber + func_line - 1, 0, True, False, err,)
+            dwarf_add_line_entry(dbg, file_index, lowest_addr, l.lineNumber + func_line - 1, 0, True, False)
 
 
 def get_functions():
@@ -209,27 +247,22 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
     varnode_addr = varnode.getAddress()
 
     # TODO: add varaible starting from addr
-    var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None, err)
+    var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None)
     type_die = add_type(cu, datatype)
 
-    if dwarf_add_AT_reference(dbg, var_die, DW_AT_type, type_die, err) is None:
-        DERROR("dwarf_add_AT_reference")
+    dwarf_add_AT_reference(dbg, var_die, DW_AT_type, type_die)
+    dwarf_add_AT_name(var_die, name)
 
-    if dwarf_add_AT_name(var_die, name, err) is None:
-        DERROR("dwarf_add_AT_name")
-
-    expr = dwarf_new_expr(dbg, err)
+    expr = dwarf_new_expr(dbg)
 
     try:
         if varnode_addr.isRegisterAddress():
             reg = curr.getRegister(varnode_addr, varnode.size)
             reg_dwarf = register_mappings[reg.offset]
-            if dwarf_add_expr_gen(expr, DW_OP_regx, reg_dwarf, 0, err) == DW_DLV_NOCOUNT:
-                DERROR("dwarf_add_expr_gen")
+            dwarf_add_expr_gen(expr, DW_OP_regx, reg_dwarf, 0)
         elif varnode_addr.isStackAddress():
             # TODO: properly get register size and figure out if this is always correct
-            if dwarf_add_expr_gen(expr, DW_OP_fbreg, varnode_addr.offset - varnode_addr.pointerSize, 0, err) == DW_DLV_NOCOUNT:
-                DERROR("dwarf_add_expr_gen")
+            dwarf_add_expr_gen(expr, DW_OP_fbreg, varnode_addr.offset - varnode_addr.pointerSize, 0)
         elif varnode_addr.isMemoryAddress():
             # TODO: globals?
             assert False, "Memory address"
@@ -243,37 +276,30 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
         else:
             assert False, ("ERR var:", varnode)
 
-        if dwarf_add_AT_location_expr(dbg, var_die, DW_AT_location, expr, err) is None:
-            DERROR("dwarf_add_AT_location_expr")
+        dwarf_add_AT_location_expr(dbg, var_die, DW_AT_location, expr)
     except:
         return var_die
     return var_die
 
 
 def add_function(cu, func, file_index):
-    die = dwarf_new_die(dbg, DW_TAG_subprogram, cu, None, None, None, err)
-    if die is None:
-        DERROR("dwarf_new_die")
-    loc_expr = dwarf_new_expr(dbg, err)
-    if dwarf_add_expr_gen(loc_expr, DW_OP_call_frame_cfa, 0, 0, err) == DW_DLV_NOCOUNT:
-        DERROR("dwarf_add_expr_gen")
-    if dwarf_add_AT_location_expr(dbg, die, DW_AT_frame_base, loc_expr, err) is None:
-        DERROR("dwarf_add_AT_location_expr")
+    die = dwarf_new_die(dbg, DW_TAG_subprogram, cu, None, None, None)
+    loc_expr = dwarf_new_expr(dbg)
+    dwarf_add_expr_gen(loc_expr, DW_OP_call_frame_cfa, 0, 0)
+    dwarf_add_AT_location_expr(dbg, die, DW_AT_frame_base, loc_expr)
     f_name = func.name
-    if dwarf_add_AT_name(die, f_name, err) is None:
-        DERROR("dwarf_add_AT_name")
-    if dwarf_add_AT_string(dbg, die, DW_AT_linkage_name, f_name, err) is None:
-        DERROR("dwarf_add_AT_string")
+    dwarf_add_AT_name(die, f_name)
+    dwarf_add_AT_string(dbg, die, DW_AT_linkage_name, f_name)
 
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
 
     t = func.returnType
     ret_type_die = add_type(cu, func.returnType)
-    dwarf_add_AT_reference(dbg, die, DW_AT_type, ret_type_die, err)
+    dwarf_add_AT_reference(dbg, die, DW_AT_type, ret_type_die)
 
-    dwarf_add_AT_targ_address(dbg, die, DW_AT_low_pc, f_start, 0, err)
-    dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end - 1, 0, err)
+    dwarf_add_AT_targ_address(dbg, die, DW_AT_low_pc, f_start, 0)
+    dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end - 1, 0)
 
     if options.use_decompiler:
         func_line = len(decomp_lines) + 1
@@ -282,9 +308,9 @@ def add_function(cu, func, file_index):
         d = res.decompiledFunction.c
         decomp_lines.extend(d.split('\n'))
 
-        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index, err)
-        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line, err)
-        dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False, err)
+        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
+        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
+        dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False)
         add_decompiler_func_info(cu, die, func, file_index, func_line)
     else:
         # TODO: NEVER?
@@ -317,10 +343,10 @@ def add_type(cu, t):
 
 
 def add_default_type(cu, t):
-    die = dwarf_new_die(dbg, DW_TAG_base_type, cu, None, None, None, err)
+    die = dwarf_new_die(dbg, DW_TAG_base_type, cu, None, None, None)
     record[t.name] = die
-    dwarf_add_AT_name(die, t.name, err)
-    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err)
+    dwarf_add_AT_name(die, t.name)
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length)
 
     # type encoding dwarfstd.org/doc/DWARF4.pdf#page=91
     if isinstance(t, BooleanDataType):
@@ -337,42 +363,37 @@ def add_default_type(cu, t):
     else:
         # if I forgot a type it's probably ok for it to be encoded as an unsigned integer
         encoding = DW_ATE_unsigned
-    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_encoding, encoding, err)
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_encoding, encoding)
     return die
 
 
 def add_ptr_type(cu, t):
     assert "pointer" in t.description
-    die = dwarf_new_die(dbg, DW_TAG_pointer_type, cu, None, None, None, err)
+    die = dwarf_new_die(dbg, DW_TAG_pointer_type, cu, None, None, None)
     record[t.name] = die
 
     child_die = add_type(cu, t.dataType)
-    if dwarf_add_AT_reference(dbg, die, DW_AT_type, child_die, err) is None:
-        DERROR("dwarf_add_AT_reference child")
-    if dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length, err) is None:
-        DERROR("dwarf_add_AT_unsigned_const")
-    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_encoding, DW_ATE_address, err)
+    dwarf_add_AT_reference(dbg, die, DW_AT_type, child_die)
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length)
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_encoding, DW_ATE_address)
     return die
 
 
 def add_struct_type(cu, struct):
-    die = dwarf_new_die(dbg, DW_TAG_structure_type, cu, None, None, None, err)
+    die = dwarf_new_die(dbg, DW_TAG_structure_type, cu, None, None, None)
     record[struct.name] = die
-    if dwarf_add_AT_name(die, struct.name.replace("struct", ""), err) is None:
-        DERROR("dwarf_add_AT_name")
-    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, struct.length, err)
+    dwarf_add_AT_name(die, struct.name.replace("struct", ""))
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, struct.length)
     for c in struct.components:
-        member_die = dwarf_new_die(dbg, DW_TAG_member, die, None, None, None, err)
+        member_die = dwarf_new_die(dbg, DW_TAG_member, die, None, None, None)
         member_type_die = add_type(cu, c.dataType)
-        dwarf_add_AT_reference(dbg, member_die, DW_AT_type, member_type_die, err)
-        dwarf_add_AT_name(member_die, c.fieldName, err)
+        dwarf_add_AT_reference(dbg, member_die, DW_AT_type, member_type_die)
+        dwarf_add_AT_name(member_die, c.fieldName)
 
-        loc_expr = dwarf_new_expr(dbg, err)
-        if dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0, err) == DW_DLV_NOCOUNT:
-            DERROR("dward_add_expr_gen")
+        loc_expr = dwarf_new_expr(dbg)
+        dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0)
 
-        if dwarf_add_AT_location_expr(dbg, member_die, DW_AT_data_member_location, loc_expr, err) is None:
-            DERROR("dwarf_add_AT_location_expr")
+        dwarf_add_AT_location_expr(dbg, member_die, DW_AT_data_member_location, loc_expr)
     return die
 
 
@@ -387,18 +408,14 @@ class SectionsCallback(Dwarf_Callback_Func):
         return len(self.sections) - 1
 
 def generate_dwarf_sections():
-    section_count = dwarf_transform_to_disk_form(dbg, err)
-    if section_count == DW_DLV_NOCOUNT:
-        DERROR("dwarf_transform_to_disk_form")
+    section_count = dwarf_transform_to_disk_form(dbg)
     print "section_count", section_count
 
     sections = {}
     for i in xrange(section_count):
         section_index = LongByReference()
         length = LongByReference()
-        content = dwarf_get_section_bytes(dbg, i, section_index, length, err)
-        if content is None:
-            DERROR("dwarf_get_section_bytes")
+        content = dwarf_get_section_bytes(dbg, i, section_index, length)
 
         section_index = section_index.value
         length = length.value
@@ -426,12 +443,11 @@ if __name__ == "__main__":
         "V2",
         None,
         dbg,
-        err,
     )
     dbg = Dwarf_P_Debug(dbg.value)
     options = Options(use_dec=True)
     add_debug_info()
     write_source()
     sections = generate_dwarf_sections()
-    dwarf_producer_finish(dbg, None)
+    dwarf_producer_finish_a(dbg)
     add_sections_to_elf(exe_path, out_path, sections)

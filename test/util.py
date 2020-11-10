@@ -38,3 +38,8 @@ def get_line(line: int) -> str:
     res = execute_cmd(f"list {line}")
     _, payload = get_payload(res).split(f"{line}\\t")
     return payload.replace("\\n", "").strip()
+
+
+def init(filename: str) -> None:
+    execute_cmd(f"-file-exec-and-symbols {filename}")
+    execute_cmd("set listsize 1")

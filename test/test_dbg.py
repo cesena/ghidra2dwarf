@@ -4,8 +4,7 @@ from util import *
 
 
 def test_function():
-    execute_cmd("-file-exec-and-symbols ./test_dbg")
-    execute_cmd("set listsize 1")
+    init("./test_dbg")
     execute_cmd("-break-insert 136")
     execute_cmd("-break-insert 142")
     execute_cmd("-exec-run")
@@ -22,5 +21,4 @@ def test_function():
 
     assert 15 == get_int("ex_2->x")
 
-
-test_function()
+    assert "print_example(ex_2);" == get_line(144)

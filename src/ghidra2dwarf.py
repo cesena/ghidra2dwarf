@@ -19,6 +19,7 @@ from ghidra.program.model.data import Pointer, Structure, DefaultDataType, Built
 from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
+from ghidra.framework import OperatingSystem
 
 from elf import add_sections_to_elf
 from libdwarf import LibdwarfLibrary
@@ -45,7 +46,19 @@ def get_libdwarf_err():
     return dwarf_errmsg(derr)
 
 record = {}
-exe_path = os.path.join(*os.path.split(curr.executablePath))
+exe_path = curr.executablePath
+# workaround ghidra being dumb and putting a slash in front of Windows paths
+# this should be fixed in the next release as discussed here:
+# https://github.com/NationalSecurityAgency/ghidra/pull/2220
+if OperatingSystem.CURRENT_OPERATING_SYSTEM == OperatingSystem.WINDOWS and exe_path[0] == '/':
+    exe_path = exe_path[1:]
+
+while not os.path.isfile(exe_path):
+    print "I couldn't find the original file at path %s. Please specify its path:" % exe_path
+    exe_path = askFile("Original binary path", 'Open').path
+    curr.executablePath = exe_path
+    print "Changed binary path to %s." % exe_path
+
 out_path = exe_path + '_dbg'
 decompiled_c_path = exe_path + '.ghidra.c'
 decomp_lines = []

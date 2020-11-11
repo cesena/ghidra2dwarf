@@ -4,7 +4,7 @@ from util import *
 
 
 def test_function():
-    init("./test_dbg")
+    init("./test_ghidra_dbg")
     execute_cmd("-break-insert 136")
     execute_cmd("-break-insert 142")
     execute_cmd("-exec-run")

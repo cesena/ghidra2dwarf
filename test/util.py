@@ -34,6 +34,10 @@ def get_int(var: str) -> int:
     return int(value.split(" = ")[1])
 
 
+def get_hex(var: str) -> int:
+    value = get_payload(execute_cmd(f"p/x {var}")).replace("\\n", "")
+    return int(value.split(" = ")[1][2:], 16)
+
 def get_line(line: int) -> str:
     res = execute_cmd(f"list {line}")
     _, payload = get_payload(res).split(f"{line}\\t")

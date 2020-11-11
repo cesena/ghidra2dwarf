@@ -30,7 +30,7 @@ def get_struct(var: str) -> dict:
 
 
 def get_int(var: str) -> int:
-    value = get_payload(execute_cmd(f"print {var}")).replace("\\n", "")
+    value = get_payload(execute_cmd(f"print (unsigned int){var}")).replace("\\n", "")
     return int(value.split(" = ")[1])
 
 

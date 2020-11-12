@@ -1,0 +1,1 @@
+python3 generate_dbg.py %1

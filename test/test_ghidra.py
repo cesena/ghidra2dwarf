@@ -1,24 +1,23 @@
 #!/usr/bin/env python3
 
-from util import *
-
+from util import Gdb
 
 def test_function():
-    init("./test_ghidra_dbg")
-    execute_cmd("-break-insert 136")
-    execute_cmd("-break-insert 142")
-    execute_cmd("-exec-run")
+    gdb = Gdb("binaries", "test_ghidra_dbg")
+    gdb.breakpoint(136)
+    gdb.breakpoint(142)
+    gdb.execute_mi("-exec-run")
 
-    execute_cmd("c 2")
-    assert 2 == get_int("i")
-    assert "i = i + 1;" == get_line(136)
+    gdb.execute_gdb("c 2")
+    assert 2 == gdb.get_int("i")
+    assert "i = i + 1;" == gdb.get_line(136)
 
-    execute_cmd("c 3")
-    d = get_struct("*ex_2")
-    assert "15" == d["x"]
-    assert "20" == d["y"]
+    gdb.execute_gdb("c 3")
+    d = gdb.get_struct("*ex_2")
+    assert 15 == d["x"]
+    assert 20 == d["y"]
     assert "Example 1" in d["name"]
 
-    assert 15 == get_int("ex_2->x")
+    assert 15 == gdb.get_int("ex_2->x")
 
-    assert "print_example(ex_2);" == get_line(144)
+    assert "print_example(ex_2);" == gdb.get_line(144)

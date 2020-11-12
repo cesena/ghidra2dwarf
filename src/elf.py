@@ -189,13 +189,10 @@ def add_sections_to_elf(from_file, to_file, sections):
 	with open(from_file, 'rb') as f:
 		bb = f.read()
 	e = Elf(bb)
-	print 'Type:', e.type
 
 	for name, s in sections:
 		e.add_section(name, s)
 	out = e.generate_updated_elf()
-	for s in e.section_headers:
-		print s
 	with open(to_file, 'wb') as f:
 		f.write(out)
 

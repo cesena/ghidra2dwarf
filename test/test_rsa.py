@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 
-from util import *
-
+from util import Gdb
 
 def test_function():
-    init("./rsa_dbg")
-    execute_cmd("-break-insert 434")
-    execute_cmd("-exec-run")
+    gdb = Gdb("binaries", "rsa_dbg")
+    gdb.breakpoint(434)
+    gdb.execute_mi("-exec-run")
 
-    assert 0xC5 == get_int("local_ac0")
-    assert "local_abf = 0xd6;" == get_line(434)
+    assert 0xc5 == gdb.get_int("local_ac0")
+    assert "local_abf = 0xd6;" == gdb.get_line(434)
 
-    execute_cmd("n")
-    assert 0xD6 == get_int("local_abf")
+    gdb.execute_gdb("n")
+    assert 0xd6 == gdb.get_int("local_abf")

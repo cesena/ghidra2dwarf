@@ -9,6 +9,8 @@ BINS_DIR = 'binaries'
 
 ghidra_dir = sys.argv[1]
 headless_path = os.path.join(ghidra_dir, 'support', 'analyzeHeadless')
+if os.name == 'nt':
+	headless_path += '.bat'
 
 with tempfile.TemporaryDirectory(prefix='temp_ghidra2dwarf_') as temp_dir:
 	for f in os.listdir(BINS_DIR):

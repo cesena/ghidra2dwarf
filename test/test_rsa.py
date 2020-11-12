@@ -8,8 +8,8 @@ def test_function():
     execute_cmd("-break-insert 434")
     execute_cmd("-exec-run")
 
-    assert 0xc5 == get_int("local_ac0")
+    assert 0xC5 == get_int("local_ac0")
     assert "local_abf = 0xd6;" == get_line(434)
 
     execute_cmd("n")
-    assert 0xd6 == get_int("local_abf")
+    assert 0xD6 == get_int("local_abf")

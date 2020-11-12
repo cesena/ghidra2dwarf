@@ -22,7 +22,7 @@ with tempfile.TemporaryDirectory(prefix='temp_ghidra2dwarf_') as temp_dir:
 			'-postScript', 'ghidra2dwarf.py', os.path.join(BINS_DIR, name)
 		]
 		print(' '.join(cmd))
-		p = subprocess.run(cmd, check=True, stderr=subprocess.PIPE, shell=True)
+		p = subprocess.run(cmd, check=True, stderr=subprocess.PIPE)
 		print(p.stderr.decode())
 		exception = b'Traceback' in p.stderr
 		assert not exception

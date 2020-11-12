@@ -11,7 +11,7 @@ def test_function():
     INPUT = f'{NAME} 1 2'
     gdb.execute_gdb(f"r < <(echo {INPUT})")
 
-    assert NAME == gdb.get_string("name")
+    assert NAME == gdb.get_string("(char *)name")
     gdb.execute_gdb("c")
 
     assert 0x61616179 == gdb.get_int("passcode1")

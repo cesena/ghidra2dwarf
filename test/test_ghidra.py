@@ -2,6 +2,7 @@
 
 from util import Gdb
 
+
 def test_function():
     gdb = Gdb("binaries", "test_ghidra_dbg")
     gdb.breakpoint(136)

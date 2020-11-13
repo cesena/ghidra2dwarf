@@ -4,7 +4,7 @@
 
 Inspired by: [dwarfexport](https://github.com/ALSchwalm/dwarfexport)
 
-This project is still WIP. Contributions are welcome, feel free to open an issue if something is broken.
+Contributions are welcome, feel free to open an issue if something is broken.
 
 Ghidra2Dwarf is a ghidra plugin that allows to exports informations (such as functions,
 decompiled code, types) from ghidra to dwarf sections inside ELF binaries.

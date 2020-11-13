@@ -3,6 +3,7 @@
 from pygdbmi.gdbcontroller import GdbController
 from pprint import pprint
 from itertools import dropwhile
+import tempfile
 import os
 
 
@@ -26,9 +27,6 @@ class Gdb:
     def execute_mi(self, cmd: str) -> dict:
         return self.execute_raw(cmd)[0]["payload"]
 
-    def breakpoint(self, addr: int):
-        return self.execute_mi(f"-break-insert {addr}")
-
     def execute_gdb(self, cmd: str) -> str:
         lines = dropwhile(lambda x: x["type"] != "log", self.execute_raw(cmd))
         r = "".join(x["payload"] for x in lines if x["type"] == "console" and x["stream"] == "stdout" and x["payload"])
@@ -36,6 +34,24 @@ class Gdb:
         if self.debug:
             print("RESP:", r)
         return r
+
+    def run(self, *, args='', stdin=''):
+        cmd = f'run'
+        if args:
+            cmd += f' {args}'
+        if stdin:
+            self.f_stdin = tempfile.NamedTemporaryFile(prefix='g2d_stdin_')
+            self.f_stdin.write(stdin.encode())
+            self.f_stdin.flush()
+            cmd += f' < {self.f_stdin.name}'
+        return self.execute_gdb(cmd)
+
+    def __del__(self):
+        if hasattr(self, 'f_stdin'):
+            self.f_stdin.close()
+
+    def breakpoint(self, addr: int):
+        return self.execute_mi(f"-break-insert {addr}")
 
     def create_var(self, name: str) -> dict:
         if isinstance(name, dict):

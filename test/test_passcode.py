@@ -3,13 +3,13 @@
 from util import Gdb
 
 def test_function():
-    gdb = Gdb("binaries", "passcode_dbg")
+    gdb = Gdb("binaries", "passcode_dbg", debug=True)
     gdb.breakpoint(193)
     gdb.breakpoint(166)
 
     NAME = 'aaaabaaacaaadaaaeaaafaaagaaahaaaiaaajaaakaaalaaamaaanaaaoaaapaaaqaaaraaasaaataaauaaavaaawaaaxaaayaaa'
     INPUT = f'{NAME} 1 2'
-    gdb.execute_gdb(f"r < <(echo {INPUT})")
+    gdb.run(args='dkjasl as', stdin=INPUT)
 
     assert NAME == gdb.get_string("(char *)name")
     gdb.execute_gdb("c")

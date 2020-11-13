@@ -17,8 +17,6 @@ class Gdb:
         self.execute_raw("set listsize 1")
 
     def execute_raw(self, cmd: str) -> list:
-        # this is needed to clean up gdb output
-        self.gdbmi.get_gdb_response(timeout_sec=0, raise_error_on_timeout=False)
         response = self.gdbmi.write(cmd)
         if self.debug:
             print("CMD:", cmd)
@@ -26,7 +24,11 @@ class Gdb:
         return response
 
     def execute_mi(self, cmd: str) -> dict:
-        return self.execute_raw(cmd)[0]["payload"]
+        try:
+            resp = next(x for x in self.execute_raw(cmd) if x["message"] == "done")
+            return resp["payload"]
+        except:
+            raise Exception(f"The command {repr(cmd)} did not return a value.")
 
     def execute_gdb(self, cmd: str) -> str:
         lines = dropwhile(lambda x: x["type"] != "log", self.execute_raw(cmd))
@@ -36,8 +38,8 @@ class Gdb:
             print("RESP:", r)
         return r
 
-    def run(self, *, args='', stdin=''):
-        cmd = f'run'
+    def _run_or_start(self, what: str, args: str, stdin: str):
+        cmd = what
         if args:
             cmd += f' {args}'
         if stdin:
@@ -45,11 +47,17 @@ class Gdb:
             self.f_stdin.write(stdin.encode())
             self.f_stdin.flush()
             cmd += f' < {self.f_stdin.name}'
-        return self.execute_gdb(cmd)
+        return self.execute_raw(cmd)
 
     def __del__(self):
         if hasattr(self, 'f_stdin'):
             self.f_stdin.close()
+
+    def run(self, *, args: str='', stdin: str=''):
+        return self._run_or_start('run', args=args, stdin=stdin)
+
+    def start(self, *, args: str='', stdin: str=''):
+        return self._run_or_start('start', args=args, stdin=stdin)
 
     def breakpoint(self, addr: int):
         return self.execute_mi(f"-break-insert {addr}")

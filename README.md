@@ -9,7 +9,7 @@ Contributions are welcome, feel free to open an issue if something is broken.
 Ghidra2Dwarf is a ghidra plugin that allows to exports informations (such as functions,
 decompiled code, types) from ghidra to dwarf sections inside ELF binaries.
 
-More specifically it exports inside a source file named `${program}.ghidra.c` all the decompiled
+More specifically it exports inside a source file named `${program}_dbg.c` all the decompiled
 functions, and create an ELF binary named `${program}_dbg` that can be used to
 do source code level debugging.
 
@@ -22,6 +22,7 @@ Inside gdb now you can use:
 1. `list <function>` to display the function's source code.
 2. `n` to step one source code line instruction.
 3. `ni` to step one assembly instruction.
+4. `p variable` to print the variable's value.
 
 ## Install
 

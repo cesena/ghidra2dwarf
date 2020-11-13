@@ -17,7 +17,8 @@ class Gdb:
         self.execute_raw("set listsize 1")
 
     def execute_raw(self, cmd: str) -> list:
-        self.gdbmi.write("")
+        # this is needed to clean up gdb output
+        self.gdbmi.get_gdb_response(timeout_sec=0, raise_error_on_timeout=False)
         response = self.gdbmi.write(cmd)
         if self.debug:
             print("CMD:", cmd)

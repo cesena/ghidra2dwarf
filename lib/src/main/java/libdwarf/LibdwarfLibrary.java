@@ -97,6 +97,7 @@ public interface LibdwarfLibrary extends Library {
 	public static final int DW_ATE_unsigned = (int)0x07;
 	public static final int DW_ATE_unsigned_char = (int)0x08;
 	public static final int DW_AT_byte_size = (int)0x0b;
+	public static final int DW_AT_count = (int)0x37;
 	public static final int DW_AT_data_member_location = (int)0x38;
 	public static final int DW_AT_decl_file = (int)0x3a;
 	public static final int DW_AT_decl_line = (int)0x3b;
@@ -106,6 +107,7 @@ public interface LibdwarfLibrary extends Library {
 	public static final int DW_AT_linkage_name = (int)0x6e;
 	public static final int DW_AT_location = (int)0x02;
 	public static final int DW_AT_low_pc = (int)0x11;
+	public static final int DW_AT_sibling = (int)0x01;
 	public static final int DW_AT_type = (int)0x49;
 	public static final int DW_DLC_OFFSET32 = (int)0x00010000;
 	public static final int DW_DLC_POINTER64 = (int)0x40000000;
@@ -154,11 +156,13 @@ public interface LibdwarfLibrary extends Library {
 	public static final int DW_OP_fbreg = (int)0x91;
 	public static final int DW_OP_plus_uconst = (int)0x23;
 	public static final int DW_OP_regx = (int)0x90;
+	public static final int DW_TAG_array_type = (int)0x01;
 	public static final int DW_TAG_base_type = (int)0x24;
 	public static final int DW_TAG_compile_unit = (int)0x11;
 	public static final int DW_TAG_member = (int)0x0d;
 	public static final int DW_TAG_pointer_type = (int)0x0f;
 	public static final int DW_TAG_structure_type = (int)0x13;
 	public static final int DW_TAG_subprogram = (int)0x2e;
+	public static final int DW_TAG_subrange_type = (int)0x21;
 	public static final int DW_TAG_variable = (int)0x34;
 }

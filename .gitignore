@@ -1,2 +1,11 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
 .gdb_history
-test/
+.pytest_cache/
+*.gpr
+*.rep/
+idata/
+
+/test/binaries/*_dbg*

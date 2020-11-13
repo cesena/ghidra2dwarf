@@ -1,0 +1,80 @@
+name: Tests
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - '*'
+
+jobs:
+  test-ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11.0.4
+          architecture: x64
+      - uses: er28-0652/setup-ghidra@master
+        with:
+          version: "9.1.2"
+      
+      - name: install gdb
+        run: sudo apt install gdb
+      
+      - name: install 32bit libs
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt update
+          sudo apt install libc6:i386
+
+      - name: copy lib
+        run: |
+          mkdir -p ~/.ghidra/.ghidra_9.1.2_PUBLIC/plugins/
+          cp lib/target/libdwarf.jar ~/.ghidra/.ghidra_9.1.2_PUBLIC/plugins/
+
+      - name: install python requirements
+        run: |
+          cd test
+          sudo python3 -m pip install -r requirements.txt
+      
+      - name: test
+        run: |
+          cd test
+          #./generate_dbg.py $GHIDRA_INSTALL_DIR
+          #cd binaries
+          #chmod +x ./passcode_dbg
+          #gdb --batch -ex 'start < passcode_input.txt' -ex list -ex continue ./passcode_dbg
+          ./run_tests.sh $GHIDRA_INSTALL_DIR
+
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11.0.4
+          architecture: x64
+      - uses: er28-0652/setup-ghidra@master
+        with:
+          version: "9.1.2"
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: copy lib
+        shell: cmd
+        run: |
+          mkdir -p %USERPROFILE%\.ghidra\.ghidra_9.1.2_PUBLIC\plugins
+          copy lib\target\libdwarf.jar %USERPROFILE%\.ghidra\.ghidra_9.1.2_PUBLIC\plugins
+
+      - name: test
+        shell: cmd
+        run: |
+          cd test
+          copy %pythonLocation%\python.exe python3.exe
+          call run_tests %GHIDRA_INSTALL_DIR%

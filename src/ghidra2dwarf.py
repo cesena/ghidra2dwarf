@@ -15,7 +15,7 @@ from ghidra.app.decompiler import DecompInterface, DecompileOptions
 from ghidra.app.util.bin.format.elf import ElfSymbolTable
 from ghidra.app.decompiler.component import DecompilerUtils
 from ghidra.program.database.data import PointerDB
-from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType, BooleanDataType, CharDataType, AbstractIntegerDataType, AbstractFloatDataType, AbstractComplexDataType
+from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType, BooleanDataType, CharDataType, AbstractIntegerDataType, AbstractFloatDataType, AbstractComplexDataType, ArrayDataType
 from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
@@ -60,7 +60,7 @@ while not os.path.isfile(exe_path):
     print "Changed binary path to %s." % exe_path
 
 out_path = exe_path + '_dbg'
-decompiled_c_path = exe_path + '.ghidra.c'
+decompiled_c_path = exe_path + '_dbg.c'
 decomp_lines = []
 
 ERR_IS_NOT_OK = lambda e: e != DW_DLV_OK
@@ -343,6 +343,8 @@ def add_type(cu, t):
 
     if isinstance(t, Pointer):
         return add_ptr_type(cu, t)
+    elif isinstance(t, ArrayDataType):
+        return add_array_type(cu, t)
     elif isinstance(t, Structure):
         return add_struct_type(cu, t)
     elif isinstance(t, (BuiltInDataType, DefaultDataType)):
@@ -407,6 +409,19 @@ def add_struct_type(cu, struct):
         dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0)
 
         dwarf_add_AT_location_expr(dbg, member_die, DW_AT_data_member_location, loc_expr)
+    return die
+
+
+def add_array_type(cu, array):
+    die = dwarf_new_die(dbg, DW_TAG_array_type, cu, None, None, None)
+    record[array.name] = die
+
+    element_die = add_type(cu, array.dataType)
+    dwarf_add_AT_reference(dbg, die, DW_AT_type, element_die)
+
+    subrange = dwarf_new_die(dbg, DW_TAG_subrange_type, die, None, None, None)
+    dwarf_add_AT_unsigned_const(dbg, subrange, DW_AT_count, array.length)
+
     return die
 
 

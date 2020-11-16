@@ -15,7 +15,8 @@ from ghidra.app.decompiler import DecompInterface, DecompileOptions
 from ghidra.app.util.bin.format.elf import ElfSymbolTable
 from ghidra.app.decompiler.component import DecompilerUtils
 from ghidra.program.database.data import PointerDB
-from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType, BooleanDataType, CharDataType, AbstractIntegerDataType, AbstractFloatDataType, AbstractComplexDataType, ArrayDataType
+from ghidra.program.model.symbol import SymbolTable, SymbolType
+from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType, BooleanDataType, CharDataType, AbstractIntegerDataType, AbstractFloatDataType, AbstractComplexDataType, ArrayDataType, Array, Enum
 from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
@@ -37,35 +38,38 @@ orig_base = ElfLoader.getElfOriginalImageBase(curr)
 # this breaks stuff, we changed approach and started using get_real_address
 # curr.setImageBase(toAddr(orig_base), False)
 
+
 def get_real_address(addr):
     return addr.offset - image_base + orig_base
+
 
 def get_libdwarf_err():
     derr = Dwarf_Error(err.value)
     print derr
     return dwarf_errmsg(derr)
 
+
 record = {}
 exe_path = curr.executablePath
 # workaround ghidra being dumb and putting a slash in front of Windows paths
 # this should be fixed in the next release as discussed here:
 # https://github.com/NationalSecurityAgency/ghidra/pull/2220
-if OperatingSystem.CURRENT_OPERATING_SYSTEM == OperatingSystem.WINDOWS and exe_path[0] == '/':
+if OperatingSystem.CURRENT_OPERATING_SYSTEM == OperatingSystem.WINDOWS and exe_path[0] == "/":
     exe_path = exe_path[1:]
 
 while not os.path.isfile(exe_path):
     print "I couldn't find the original file at path %s. Please specify its path:" % exe_path
-    exe_path = askFile("Original binary path", 'Open').path
+    exe_path = askFile("Original binary path", "Open").path
     curr.executablePath = exe_path
     print "Changed binary path to %s." % exe_path
 
-out_path = exe_path + '_dbg'
-decompiled_c_path = exe_path + '_dbg.c'
+out_path = exe_path + "_dbg"
+decompiled_c_path = exe_path + "_dbg.c"
 decomp_lines = []
 
 ERR_IS_NOT_OK = lambda e: e != DW_DLV_OK
 ERR_IS_NOCOUNT = lambda e: e == DW_DLV_NOCOUNT
-ERR_IS_BADADDR = lambda e: e is None or e == DW_DLV_BADADDR or (hasattr(e, 'pointer') and e.pointer == DW_DLV_BADADDR)
+ERR_IS_BADADDR = lambda e: e is None or e == DW_DLV_BADADDR or (hasattr(e, "pointer") and e.pointer == DW_DLV_BADADDR)
 DWARF_FUNCTIONS = {
     'dwarf_producer_init': ERR_IS_NOT_OK,
     'dwarf_pro_set_default_string_form': ERR_IS_NOT_OK,
@@ -87,18 +91,22 @@ DWARF_FUNCTIONS = {
     'dwarf_add_die_to_debug_a': ERR_IS_NOT_OK,
     'dwarf_new_expr': ERR_IS_BADADDR,
     'dwarf_add_expr_gen': ERR_IS_NOCOUNT,
+    'dwarf_add_expr_addr_b': ERR_IS_NOCOUNT
 }
+
 
 def generate_fun_wrapper(name, fun):
     def wrapper(*args):
-        r = fun(*(args + (err, )))
+        r = fun(*(args + (err,)))
         error_check = DWARF_FUNCTIONS[name]
         if error_check(r):
             # TODO: dwarf_errmsg (hence get_libdwarf_err) is broken for some reason
             # assert False, "%s failed: %s" % (name, get_libdwarf_err())
             assert False, "%s failed. Returned %r" % (name, r)
         return r
+
     return wrapper
+
 
 l = LibdwarfLibrary.INSTANCE
 g = globals()
@@ -108,7 +116,6 @@ for name in LibdwarfLibrary.__dict__.keys():
         g[name] = generate_fun_wrapper(name, fun)
     else:
         g[name] = getattr(l, name)
-
 
 
 class Options:
@@ -123,20 +130,18 @@ class Options:
         self.export_options = 0
 
 
-
 def add_debug_info():
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string)
     cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None)
     if options.use_decompiler:
         c_file_name = os.path.split(decompiled_c_path)[1]
         dwarf_add_AT_name(cu, c_file_name)
-        dir_index = dwarf_add_directory_decl(dbg, '.')
+        dir_index = dwarf_add_directory_decl(dbg, ".")
         file_index = dwarf_add_file_decl(dbg, c_file_name, dir_index, 0, 0)
-        dwarf_add_AT_comp_dir(cu, '.')
+        dwarf_add_AT_comp_dir(cu, ".")
 
     for f in get_functions():
-        if is_function_executable(f):
-            add_function(cu, f, file_index)
+        add_function(cu, f, file_index)
         pass
         # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
         # print (results.getDecompiledFunction().getC())
@@ -209,7 +214,7 @@ def add_decompiler_func_info(cu, func_die, func, file_index, func_line):
 
         if lowest_addr:
             # TODO: is this call to dwarf_lne_set_address needed?
-            #dwarf_lne_set_address(dbg, lowest_line_addr, 0)
+            # dwarf_lne_set_address(dbg, lowest_line_addr, 0)
             # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
             dwarf_add_line_entry(dbg, file_index, lowest_addr, l.lineNumber + func_line - 1, 0, True, False)
 
@@ -234,8 +239,20 @@ def is_function_executable(func):
 
 
 def add_global_variables(cu):
-    # TODO
-    pass
+    for s in curr.symbolTable.getAllSymbols(False):
+        # TODO: What is GLOBAL and GLOBAL_VAR ?
+        if s.symbolType in [SymbolType.LABEL, SymbolType.GLOBAL_VAR]:
+            t = curr.listing.getDataAt(s.address)
+            if t:
+                die = dwarf_new_die(dbg, DW_TAG_variable, cu, None, None, None)
+                var_type_die = add_type(cu, t.dataType)
+
+                dwarf_add_AT_name(die, s.name)
+                dwarf_add_AT_reference(dbg, die, DW_AT_type, var_type_die)
+
+                loc_expr = dwarf_new_expr(dbg)
+                dwarf_add_expr_addr_b(loc_expr, get_real_address(t.address), 0)
+                dwarf_add_AT_location_expr(dbg, die, DW_AT_location, loc_expr)
 
 
 def add_structures(cu):
@@ -277,6 +294,7 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
             # TODO: properly get register size and figure out if this is always correct
             dwarf_add_expr_gen(expr, DW_OP_fbreg, varnode_addr.offset - varnode_addr.pointerSize, 0)
         elif varnode_addr.isMemoryAddress():
+            print name, varnode
             # TODO: globals?
             assert False, "Memory address"
         elif varnode_addr.isHashAddress():
@@ -319,7 +337,7 @@ def add_function(cu, func, file_index):
 
         res = get_decompiled_function(func)
         d = res.decompiledFunction.c
-        decomp_lines.extend(d.split('\n'))
+        decomp_lines.extend(d.split("\n"))
 
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
         dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
@@ -334,7 +352,7 @@ def add_function(cu, func, file_index):
 
 def write_source():
     with open(decompiled_c_path, "wb") as src:
-        src.write('\n'.join(decomp_lines))
+        src.write("\n".join(decomp_lines))
 
 
 def add_type(cu, t):
@@ -343,7 +361,9 @@ def add_type(cu, t):
 
     if isinstance(t, Pointer):
         return add_ptr_type(cu, t)
-    elif isinstance(t, ArrayDataType):
+    elif isinstance(t, Enum):
+        return add_enum_type(cu, t)
+    elif isinstance(t, Array):
         return add_array_type(cu, t)
     elif isinstance(t, Structure):
         return add_struct_type(cu, t)
@@ -383,14 +403,36 @@ def add_default_type(cu, t):
 
 
 def add_ptr_type(cu, t):
-    assert "pointer" in t.description
     die = dwarf_new_die(dbg, DW_TAG_pointer_type, cu, None, None, None)
     record[t.name] = die
 
-    child_die = add_type(cu, t.dataType)
-    dwarf_add_AT_reference(dbg, die, DW_AT_type, child_die)
+    # pointer doesn't have child
+    if t.dataType:
+        child_die = add_type(cu, t.dataType)
+        dwarf_add_AT_reference(dbg, die, DW_AT_type, child_die)
+
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length)
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_encoding, DW_ATE_address)
+    return die
+
+
+def add_enum_type(cu, t):
+    die = dwarf_new_die(dbg, DW_TAG_enumeration_type, cu, None, None, None)
+    record[t.name] = die
+
+    dwarf_add_AT_name(die, t.name)
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_byte_size, t.length)
+
+    int_type = AbstractIntegerDataType.getUnsignedDataType(t.length, curr.dataTypeManager)
+    child_type_die = add_type(cu, int_type)
+    dwarf_add_AT_reference(dbg, die, DW_AT_type, child_type_die)
+
+    for value in t.values:
+        name = t.getName(value)
+        child_die = dwarf_new_die(dbg, DW_TAG_enumerator, die, None, None, None)
+        dwarf_add_AT_name(child_die, name)
+        dwarf_add_AT_unsigned_const(dbg, child_die, DW_AT_const_value, value)
+
     return die
 
 
@@ -435,6 +477,7 @@ class SectionsCallback(Dwarf_Callback_Func):
         self.sections.append(name)
         return len(self.sections) - 1
 
+
 def generate_dwarf_sections():
     section_count = dwarf_transform_to_disk_form(dbg)
     print "section_count", section_count
@@ -450,10 +493,11 @@ def generate_dwarf_sections():
         content = bytearray(content.getByteArray(0, length))
         section_name = sections_callback.sections[section_index]
         if section_name not in sections:
-            sections[section_name] = ''
-        sections[section_name] += content    
+            sections[section_name] = ""
+        sections[section_name] += content
         print section_index, section_name, length
     return sections.items()
+
 
 if __name__ == "__main__":
     decompiler = generate_decomp_interface()

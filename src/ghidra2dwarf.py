@@ -242,16 +242,8 @@ def add_global_variables(cu):
 
 
 def add_structures(cu):
-    """
-    # TODO: Is this useless?
-    Add all the structures defined in Ghidra, since every variable decompiled has already
-    a type associated, this function probably is useless
-
-    It corrupts the .debug_info section
     for s in curr.dataTypeManager.allStructures:
         add_type(cu, s)
-    """
-    pass
 
 
 def add_variable(cu, func_die, name, datatype, addr, storage):
@@ -445,7 +437,9 @@ def add_array_type(cu, array):
     dwarf_add_AT_reference(dbg, die, DW_AT_type, element_die)
 
     subrange = dwarf_new_die(dbg, DW_TAG_subrange_type, die, None, None, None)
-    dwarf_add_AT_unsigned_const(dbg, subrange, DW_AT_count, array.length)
+    # array.length is the total size of the array, so we need to divide it with
+    # the dataType's length to find the number of elements
+    dwarf_add_AT_unsigned_const(dbg, subrange, DW_AT_count, array.length / array.dataType.length)
 
     return die
 

@@ -1,6 +1,6 @@
 # Ghidra2Dwarf
 # @author sen, meowmeowxw
-# @category _NEW_
+# @category PWN
 # @keybinding
 # @menupath
 # @toolbar
@@ -118,33 +118,19 @@ for name in LibdwarfLibrary.__dict__.keys():
         g[name] = getattr(l, name)
 
 
-class Options:
-    def __init__(self, use_dec=False, only_dec_nam_fun=False, att_deb_inf=False, verbose=False):
-        self.use_decompiler = use_dec
-        self.only_decompile_named_funcs = only_dec_nam_fun
-        self.attach_debug_info = att_deb_inf
-        self.verbose = verbose
-        self.filepath = ""
-        self.filename = ""
-        self.dwarf_source_path = ""
-        self.export_options = 0
-
-
 def add_debug_info():
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string)
     cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None)
-    if options.use_decompiler:
-        c_file_name = os.path.split(decompiled_c_path)[1]
-        dwarf_add_AT_name(cu, c_file_name)
-        dir_index = dwarf_add_directory_decl(dbg, ".")
-        file_index = dwarf_add_file_decl(dbg, c_file_name, dir_index, 0, 0)
-        dwarf_add_AT_comp_dir(cu, ".")
+
+    c_file_name = os.path.split(decompiled_c_path)[1]
+    dwarf_add_AT_name(cu, c_file_name)
+    dir_index = dwarf_add_directory_decl(dbg, ".")
+    file_index = dwarf_add_file_decl(dbg, c_file_name, dir_index, 0, 0)
+    dwarf_add_AT_comp_dir(cu, ".")
 
     for f in get_functions():
         add_function(cu, f, file_index)
-        pass
-        # results = ifc.decompileFunction(f, 0, ConsoleTaskMonitor())
-        # print (results.getDecompiledFunction().getC())
+
     dwarf_add_die_to_debug_a(dbg, cu)
     add_global_variables(cu)
     add_structures(cu)
@@ -332,21 +318,17 @@ def add_function(cu, func, file_index):
     dwarf_add_AT_targ_address(dbg, die, DW_AT_low_pc, f_start, 0)
     dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end - 1, 0)
 
-    if options.use_decompiler:
-        func_line = len(decomp_lines) + 1
+    func_line = len(decomp_lines) + 1
 
-        res = get_decompiled_function(func)
-        d = res.decompiledFunction.c
-        decomp_lines.extend(d.split("\n"))
+    res = get_decompiled_function(func)
+    d = res.decompiledFunction.c
+    decomp_lines.extend(d.split("\n"))
 
-        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
-        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
-        dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False)
-        add_decompiler_func_info(cu, die, func, file_index, func_line)
-    else:
-        # TODO: NEVER?
-        # add_disassembler_func_info(cu, die, func)
-        pass
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
+    dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False)
+    add_decompiler_func_info(cu, die, func, file_index, func_line)
+
     return die
 
 
@@ -356,7 +338,7 @@ def write_source():
 
 
 def add_type(cu, t):
-    if record.get(t.name, 0) != 0:
+    if t.name in record:
         return record[t.name]
 
     if isinstance(t, Pointer):
@@ -406,7 +388,7 @@ def add_ptr_type(cu, t):
     die = dwarf_new_die(dbg, DW_TAG_pointer_type, cu, None, None, None)
     record[t.name] = die
 
-    # pointer doesn't have child
+    # Some pointer don't have childs
     if t.dataType:
         child_die = add_type(cu, t.dataType)
         dwarf_add_AT_reference(dbg, die, DW_AT_type, child_die)
@@ -427,6 +409,7 @@ def add_enum_type(cu, t):
     child_type_die = add_type(cu, int_type)
     dwarf_add_AT_reference(dbg, die, DW_AT_type, child_type_die)
 
+    # In this way we iterate the values in order
     for value in t.values:
         name = t.getName(value)
         child_die = dwarf_new_die(dbg, DW_TAG_enumerator, die, None, None, None)
@@ -517,7 +500,6 @@ if __name__ == "__main__":
         dbg,
     )
     dbg = Dwarf_P_Debug(dbg.value)
-    options = Options(use_dec=True)
     add_debug_info()
     write_source()
     sections = generate_dwarf_sections()

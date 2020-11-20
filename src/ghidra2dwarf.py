@@ -313,13 +313,15 @@ def add_function(cu, func, file_index):
     func_line = len(decomp_lines) + 1
 
     res = get_decompiled_function(func)
-    d = res.decompiledFunction.c
-    decomp_lines.extend(d.split("\n"))
-
-    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
-    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
-    dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False)
-    add_decompiler_func_info(cu, die, func, file_index, func_line)
+    try:
+        d = res.decompiledFunction.c
+        decomp_lines.extend(d.split("\n"))
+        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
+        dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
+        dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False)
+        add_decompiler_func_info(cu, die, func, file_index, func_line)
+    except:
+        print("no decompalation for", func)
 
     return die
 

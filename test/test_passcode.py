@@ -2,6 +2,7 @@
 
 from util import Gdb
 
+
 def test_function():
     gdb = Gdb("binaries", "passcode_dbg", debug=True)
     gdb.breakpoint(193)

@@ -175,11 +175,9 @@ def get_decompiled_variables(decomp):
     hf = decomp.highFunction
     for s in hf.localSymbolMap.symbols:
         hv = s.highVariable
-        # TODO: Sometimes error with custom types?
-        try:
+        # print s.name, s.PCAddress, type(hv)
+        if hv:
             yield s.name, hv.dataType, s.PCAddress, hv.storage
-        except:
-            pass
 
 
 def add_decompiler_func_info(cu, func_die, func, file_index, func_line):

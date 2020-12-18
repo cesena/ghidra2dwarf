@@ -4,6 +4,8 @@
 
 Inspired by: [dwarfexport](https://github.com/ALSchwalm/dwarfexport)
 
+Currently only ghidra 9.1.2 is fully supported. Installation instructions for ghidra 9.2 can be found on this [branch](https://github.com/cesena/ghidra2dwarf/tree/9.2).
+
 Contributions are welcome, feel free to open an issue if something is broken.
 
 Ghidra2Dwarf is a ghidra plugin that allows to exports informations (such as functions,

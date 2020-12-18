@@ -26,12 +26,17 @@ Inside gdb now you can use:
 
 ## Install
 
-Copy [libdwarf.jar](./lib/target/libdwarf.jar) inside `~/.ghidra/.${GHIDRA_VERSION}/plugins`.
+Ghidra 9.1.2:
+  * Copy [libdwarf.jar](./lib/target/libdwarf.jar) inside `~/.ghidra/.${GHIDRA_VERSION}/plugins`.
+
+Ghidra 9.2 (temporary fix):
+  * Copy [libdwarf.jar](./lib/target/libdwarf.jar) inside `${GHIDRA_INSTALLATION_DIR}/Ghidra/Features/Base/lib`
+
 In the script manager -> script directories add the `src` directory:
 
 ![](./img/script-directories.png)
 
-### Linux
+### Linux 9.1.2
 
 Bash:
 
@@ -43,7 +48,7 @@ mkdir -p ~/.ghidra/.${GHIDRA_VERSION}/plugins
 cp ./lib/target/libdwarf.jar ~/.ghidra/.${GHIDRA_VERSION}/plugins
 ```
 
-### Windows
+### Windows 9.1.2
 
 Powershell:
 
@@ -62,6 +67,8 @@ Run `ghidra2dwarf.py` inside the script manager:
 ![](./img/run-script.png)
 
 ### Headless mode
+
+This mode only works in ghidra 9.1.2 at the moment https://github.com/NationalSecurityAgency/ghidra/issues/2561
 
 #### Linux
 

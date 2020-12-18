@@ -174,10 +174,9 @@ def get_decompiled_function(func):
 def get_decompiled_variables(decomp):
     hf = decomp.highFunction
     for s in hf.localSymbolMap.symbols:
-        hv = s.highVariable
-        # print s.name, s.PCAddress, type(hv)
-        if hv:
-            yield s.name, hv.dataType, s.PCAddress, hv.storage
+        if s.dataType:
+            # print s.name
+            yield s.name, s.dataType, s.PCAddress, s.storage
 
 
 def add_decompiler_func_info(cu, func_die, func, file_index, func_line):

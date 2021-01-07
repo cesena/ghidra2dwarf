@@ -22,15 +22,15 @@ jobs:
         with:
           version: "9.1.2"
       
-      - name: install gdb
-        run: sudo apt install gdb
-      
       - name: install 32bit libs
         run: |
           sudo dpkg --add-architecture i386
           sudo apt update
           sudo apt install libc6:i386
 
+      - name: install gdb
+        run: sudo apt install gdb
+      
       - name: copy lib
         run: |
           mkdir -p ~/.ghidra/.ghidra_9.1.2_PUBLIC/plugins/

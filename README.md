@@ -4,7 +4,7 @@
 
 Inspired by: [dwarfexport](https://github.com/ALSchwalm/dwarfexport)
 
-Currently only ghidra 9.1.2 is fully tested, however you can find installation instructions for ghidra 9.2 on this [branch](https://github.com/cesena/ghidra2dwarf/tree/9.2).
+Currently only ghidra 9.1.2 is fully tested, however you can find installation instructions and various bug-fixes for ghidra 9.2 on this [branch](https://github.com/cesena/ghidra2dwarf/tree/9.2).
 
 Contributions are welcome, feel free to open an issue if something is broken.
 

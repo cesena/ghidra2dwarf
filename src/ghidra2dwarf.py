@@ -22,13 +22,20 @@ from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
 from ghidra.framework import OperatingSystem
 
-from elf import add_sections_to_elf
-from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
+from elf import add_sections_to_elf
+
 import os
+import sys
+
+# we have to load libdwarf.jar dynamically by adding it to the path for some reason
+script_path = sourceFile.absolutePath
+libdwarf_jar_path = os.path.join(os.path.dirname(script_path), "libdwarf.jar")
+sys.path.append(libdwarf_jar_path)
+from libdwarf import LibdwarfLibrary
 
 
 curr = getCurrentProgram()
@@ -174,12 +181,7 @@ def get_decompiled_function(func):
 def get_decompiled_variables(decomp):
     hf = decomp.highFunction
     for s in hf.localSymbolMap.symbols:
-        hv = s.highVariable
-        # TODO: Sometimes error with custom types?
-        try:
-            yield s.name, hv.dataType, s.PCAddress, hv.storage
-        except:
-            pass
+        yield s.name, s.dataType, s.PCAddress, s.storage
 
 
 def add_decompiler_func_info(cu, func_die, func, file_index, func_line):
@@ -196,13 +198,14 @@ def add_decompiler_func_info(cu, func_die, func, file_index, func_line):
     for l in lines:
         # TODO: multiple lines might have the same lowest address
         addresses = [get_real_address(t.minAddress) for t in l.allTokens if t.minAddress]
-        lowest_addr = min(addresses) if addresses else None
+        # TODO: We need to use max or min? In some cases with min we have incorrect offset
+        best_addr = addresses[0] if addresses else None
 
-        if lowest_addr:
+        if best_addr:
             # TODO: is this call to dwarf_lne_set_address needed?
             # dwarf_lne_set_address(dbg, lowest_line_addr, 0)
             # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
-            dwarf_add_line_entry(dbg, file_index, lowest_addr, l.lineNumber + func_line - 1, 0, True, False)
+            dwarf_add_line_entry(dbg, file_index, best_addr, l.lineNumber + func_line - 1, 0, True, False)
 
 
 def get_functions():
@@ -225,9 +228,9 @@ def is_function_executable(func):
 
 
 def add_global_variables(cu):
-    for s in curr.symbolTable.getAllSymbols(False):
-        # TODO: What is GLOBAL and GLOBAL_VAR ?
-        if s.symbolType in [SymbolType.LABEL, SymbolType.GLOBAL_VAR]:
+    for s in curr.symbolTable.getAllSymbols(True):
+        # TODO: What is the difference between GLOBAL and GLOBAL_VAR ?
+        if s.symbolType in [SymbolType.LABEL, SymbolType.GLOBAL, SymbolType.GLOBAL_VAR]:
             t = curr.listing.getDataAt(s.address)
             if t:
                 die = dwarf_new_die(dbg, DW_TAG_variable, cu, None, None, None)

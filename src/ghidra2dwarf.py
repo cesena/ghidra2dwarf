@@ -194,13 +194,13 @@ def add_decompiler_func_info(cu, func_die, func, file_index, func_line):
         # TODO: multiple lines might have the same lowest address
         addresses = [get_real_address(t.minAddress) for t in l.allTokens if t.minAddress]
         # TODO: We need to use max or min? In some cases with min we have incorrect offset
-        lowest_addr = max(addresses) if addresses else None
+        best_addr = addresses[0] if addresses else None
 
-        if lowest_addr:
+        if best_addr:
             # TODO: is this call to dwarf_lne_set_address needed?
             # dwarf_lne_set_address(dbg, lowest_line_addr, 0)
             # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
-            dwarf_add_line_entry(dbg, file_index, lowest_addr, l.lineNumber + func_line - 1, 0, True, False)
+            dwarf_add_line_entry(dbg, file_index, best_addr, l.lineNumber + func_line - 1, 0, True, False)
 
 
 def get_functions():

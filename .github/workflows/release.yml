@@ -14,9 +14,9 @@ jobs:
         uses: EndBug/latest-tag@latest
 
       - run: |
-        mv lib/target/libdwarf.jar src
-        mv src ghidra2dwarf
-        zip ghidra2dwarf.zip ghidra2dwarf/libdwarf.jar ghidra2dwarf/ghidra2dwarf.py ghidra2dwarf/elf.py
+          mv lib/target/libdwarf.jar src
+          mv src ghidra2dwarf
+          zip ghidra2dwarf.zip ghidra2dwarf/libdwarf.jar ghidra2dwarf/ghidra2dwarf.py ghidra2dwarf/elf.py
 
       - name: Release file
         uses: djnicholson/release-action@v2.11

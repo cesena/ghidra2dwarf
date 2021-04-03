@@ -223,9 +223,9 @@ def is_function_executable(func):
 
 
 def add_global_variables(cu):
-    for s in curr.symbolTable.getAllSymbols(False):
-        # TODO: What is GLOBAL and GLOBAL_VAR ?
-        if s.symbolType in [SymbolType.LABEL, SymbolType.GLOBAL_VAR]:
+    for s in curr.symbolTable.getAllSymbols(True):
+        # TODO: What is the difference between GLOBAL and GLOBAL_VAR ?
+        if s.symbolType in [SymbolType.LABEL, SymbolType.GLOBAL, SymbolType.GLOBAL_VAR]:
             t = curr.listing.getDataAt(s.address)
             if t:
                 die = dwarf_new_die(dbg, DW_TAG_variable, cu, None, None, None)

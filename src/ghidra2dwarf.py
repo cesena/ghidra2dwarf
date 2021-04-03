@@ -22,13 +22,20 @@ from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
 from ghidra.framework import OperatingSystem
 
-from elf import add_sections_to_elf
-from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
+from elf import add_sections_to_elf
+
 import os
+import sys
+
+# we have to load libdwarf.jar dynamically by adding it to the path for some reason
+script_path = sourceFile.absolutePath
+libdwarf_jar_path = os.path.join(os.path.dirname(script_path), "libdwarf.jar")
+sys.path.append(libdwarf_jar_path)
+from libdwarf import LibdwarfLibrary
 
 
 curr = getCurrentProgram()

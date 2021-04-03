@@ -1,10 +1,8 @@
 # Ghidra2Dwarf
 
-![](./ghidra2dwarf.png)
+![](./img/ghidra2dwarf.png)
 
 Inspired by: [dwarfexport](https://github.com/ALSchwalm/dwarfexport)
-
-Currently only ghidra 9.1.2 is fully tested, however you can find installation instructions and various bug-fixes for ghidra 9.2 on this [branch](https://github.com/cesena/ghidra2dwarf/tree/9.2).
 
 Contributions are welcome, feel free to open an issue if something is broken.
 
@@ -28,39 +26,10 @@ Inside gdb now you can use:
 
 ## Install
 
-Ghidra 9.1.2:
-  * Copy [libdwarf.jar](./lib/target/libdwarf.jar) inside `~/.ghidra/.${GHIDRA_VERSION}/plugins`.
-
-Ghidra 9.2 (temporary fix):
-  * Copy [libdwarf.jar](./lib/target/libdwarf.jar) inside `${GHIDRA_INSTALLATION_DIR}/Ghidra/Features/Base/lib`
-
-In the script manager -> script directories add the `src` directory:
+- Unzip the [latest release](https://github.com/cesena/ghidra2dwarf/releases/latest).
+- In the script manager -> script directories add the `ghidra2dwarf` directory:
 
 ![](./img/script-directories.png)
-
-### Linux 9.1.2
-
-Bash:
-
-```sh
-git clone https://github.com/cesena/ghidra2dwarf.git
-cd ghidra2dwarf
-export GHIDRA_VERSION="ghidra_9.1.2_PUBLIC" # Change here with correct version
-mkdir -p ~/.ghidra/.${GHIDRA_VERSION}/plugins
-cp ./lib/target/libdwarf.jar ~/.ghidra/.${GHIDRA_VERSION}/plugins
-```
-
-### Windows 9.1.2
-
-Powershell:
-
-```powershell
-git clone https://github.com/cesena/ghidra2dwarf.git
-cd ghidra2dwarf
-Set-Variable -Name "GHIDRA_VERSION" -Value "ghidra_9.1.2_PUBLIC"
-mkdir -p ~\.ghidra\.$GHIDRA_VERSION\plugins
-cp .\lib\target\libdwarf.jar ~\.ghidra\.$GHIDRA_VERSION\plugins
-```
 
 ## Run
 

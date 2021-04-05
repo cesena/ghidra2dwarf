@@ -27,7 +27,7 @@ Inside gdb now you can use:
 ## Install
 
 - Unzip the [latest release](https://github.com/cesena/ghidra2dwarf/releases/latest).
-- In the script manager -> script directories add the `ghidra2dwarf` directory:
+- In the script manager -> script directories add the extracted directory:
 
 ![](./img/script-directories.png)
 

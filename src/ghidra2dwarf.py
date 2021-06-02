@@ -38,6 +38,9 @@ from java.nio import ByteBuffer
 
 
 curr = getCurrentProgram()
+if curr.executableFormat != ElfLoader.ELF_NAME:
+    print "Only ELF binaries are supported"
+    exit(1)
 image_base = curr.imageBase.offset
 is_pie = curr.relocationTable.relocatable
 orig_base = ElfLoader.getElfOriginalImageBase(curr)

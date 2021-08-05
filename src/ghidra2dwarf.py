@@ -126,6 +126,8 @@ for name in LibdwarfLibrary.__dict__.keys():
     else:
         g[name] = getattr(l, name)
 
+DW_TAG_formal_parameter = 0x05
+
 
 def add_debug_info():
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string)
@@ -182,16 +184,18 @@ def get_decompiled_function(func):
 
 def get_decompiled_variables(decomp):
     hf = decomp.highFunction
-    for s in hf.localSymbolMap.symbols:
-        yield s.name, s.dataType, s.PCAddress, s.storage
+    symbolMap = hf.localSymbolMap
+    params = [symbolMap.getParam(i).symbol for i in range(symbolMap.numParams) if symbolMap.getParam(i)]
+    for s in symbolMap.symbols:
+        yield s.name, s.dataType, s.PCAddress, s.storage, s in params
 
 
 def add_decompiler_func_info(cu, func_die, func, file_index, func_line):
     # https://ghidra.re/ghidra_docs/api/ghidra/app/decompiler/DecompileResults.html
     # print func.allVariables
     decomp = get_decompiled_function(func)
-    for name, datatype, addr, storage in get_decompiled_variables(decomp):
-        add_variable(cu, func_die, name, datatype, addr, storage)
+    for name, datatype, addr, storage, is_param in get_decompiled_variables(decomp):
+        add_variable(cu, func_die, name, datatype, addr, storage, is_parameter=is_param)
 
     cmarkup = decomp.CCodeMarkup
     # TODO: implement our own pretty printer?
@@ -251,7 +255,7 @@ def add_structures(cu):
         add_type(cu, s)
 
 
-def add_variable(cu, func_die, name, datatype, addr, storage):
+def add_variable(cu, func_die, name, datatype, addr, storage, is_parameter=False):
     # TODO: there could be more than one varnode, what does it even mean?
     varnode = storage.firstVarnode
     # It looks like sometimes ghidra creates a fake/temp variable without any varnodes, it should be ok to ignore it
@@ -260,7 +264,10 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
     varnode_addr = varnode.getAddress()
 
     # TODO: add varaible starting from addr
-    var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None)
+    tag = DW_TAG_variable
+    if is_parameter:
+        tag = DW_TAG_formal_parameter
+    var_die = dwarf_new_die(dbg, tag, func_die, None, None, None)
     type_die = add_type(cu, datatype)
 
     dwarf_add_AT_reference(dbg, var_die, DW_AT_type, type_die)
@@ -308,7 +315,6 @@ def add_function(cu, func, file_index):
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
 
-    t = func.returnType
     ret_type_die = add_type(cu, func.returnType)
     dwarf_add_AT_reference(dbg, die, DW_AT_type, ret_type_die)
 

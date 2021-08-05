@@ -425,7 +425,7 @@ def add_struct_type(cu, struct):
         member_die = dwarf_new_die(dbg, DW_TAG_member, die, None, None, None)
         member_type_die = add_type(cu, c.dataType)
         dwarf_add_AT_reference(dbg, member_die, DW_AT_type, member_type_die)
-        dwarf_add_AT_name(member_die, c.fieldName)
+        dwarf_add_AT_name(member_die, c.fieldName or c.defaultFieldName)
 
         loc_expr = dwarf_new_expr(dbg)
         dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0)

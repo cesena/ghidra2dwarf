@@ -139,7 +139,9 @@ def add_debug_info():
     file_index = dwarf_add_file_decl(dbg, c_file_name, dir_index, 0, 0)
     dwarf_add_AT_comp_dir(cu, ".")
 
-    for f in get_functions():
+    funcs = get_functions()
+    for i, f in enumerate(funcs):
+        print "Decompiling function %d: %s" % (i, f)
         add_function(cu, f, file_index)
 
     dwarf_add_die_to_debug_a(dbg, cu)
@@ -190,10 +192,9 @@ def get_decompiled_variables(decomp):
         yield s.name, s.dataType, s.PCAddress, s.storage, s in params
 
 
-def add_decompiler_func_info(cu, func_die, func, file_index, func_line):
+def add_decompiler_func_info(cu, func_die, func, decomp, file_index, func_line):
     # https://ghidra.re/ghidra_docs/api/ghidra/app/decompiler/DecompileResults.html
     # print func.allVariables
-    decomp = get_decompiled_function(func)
     for name, datatype, addr, storage, is_param in get_decompiled_variables(decomp):
         add_variable(cu, func_die, name, datatype, addr, storage, is_parameter=is_param)
 
@@ -330,7 +331,7 @@ def add_function(cu, func, file_index):
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
     dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False)
-    add_decompiler_func_info(cu, die, func, file_index, func_line)
+    add_decompiler_func_info(cu, die, func, res, file_index, func_line)
 
     return die
 

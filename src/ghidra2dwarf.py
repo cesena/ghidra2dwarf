@@ -126,8 +126,6 @@ for name in LibdwarfLibrary.__dict__.keys():
     else:
         g[name] = getattr(l, name)
 
-DW_TAG_formal_parameter = 0x05
-
 
 def add_debug_info():
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string)

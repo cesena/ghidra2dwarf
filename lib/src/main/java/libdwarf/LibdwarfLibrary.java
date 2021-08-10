@@ -161,6 +161,7 @@ public interface LibdwarfLibrary extends Library {
 	public static final int DW_TAG_compile_unit = (int)0x11;
 	public static final int DW_TAG_enumeration_type = (int)0x04;
 	public static final int DW_TAG_enumerator = (int)0x28;
+	public static final int DW_TAG_formal_parameter = (int)0x05;
 	public static final int DW_TAG_member = (int)0x0d;
 	public static final int DW_TAG_pointer_type = (int)0x0f;
 	public static final int DW_TAG_structure_type = (int)0x13;

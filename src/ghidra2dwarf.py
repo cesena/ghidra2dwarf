@@ -323,13 +323,17 @@ def add_function(cu, func, file_index):
     func_line = len(decomp_lines) + 1
 
     res = get_decompiled_function(func)
-    d = res.decompiledFunction.c
+    if res.decompiledFunction is None:
+        d = "/* Error decompiling %s: %s */" % (func.getName(True), res.errorMessage)
+    else:
+        d = res.decompiledFunction.c
     decomp_lines.extend(d.split("\n"))
 
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
     dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False)
-    add_decompiler_func_info(cu, die, func, res, file_index, func_line)
+    if res.decompiledFunction is not None:
+        add_decompiler_func_info(cu, die, func, res, file_index, func_line)
 
     return die
 

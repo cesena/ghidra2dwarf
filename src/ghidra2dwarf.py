@@ -513,3 +513,6 @@ if __name__ == "__main__":
     sections = generate_dwarf_sections()
     dwarf_producer_finish_a(dbg)
     add_sections_to_elf(exe_path, out_path, sections)
+    print "Done."
+    print "ELF saved to", out_path
+    print "C source saved to", decompiled_c_path

@@ -137,7 +137,9 @@ def add_debug_info():
     file_index = dwarf_add_file_decl(dbg, c_file_name, dir_index, 0, 0)
     dwarf_add_AT_comp_dir(cu, ".")
 
-    for f in get_functions():
+    funcs = get_functions()
+    for i, f in enumerate(funcs):
+        print "Decompiling function %d: %s" % (i, f)
         add_function(cu, f, file_index)
 
     dwarf_add_die_to_debug_a(dbg, cu)
@@ -182,16 +184,17 @@ def get_decompiled_function(func):
 
 def get_decompiled_variables(decomp):
     hf = decomp.highFunction
-    for s in hf.localSymbolMap.symbols:
-        yield s.name, s.dataType, s.PCAddress, s.storage
+    symbolMap = hf.localSymbolMap
+    params = [symbolMap.getParam(i).symbol for i in range(symbolMap.numParams) if symbolMap.getParam(i)]
+    for s in symbolMap.symbols:
+        yield s.name, s.dataType, s.PCAddress, s.storage, s in params
 
 
-def add_decompiler_func_info(cu, func_die, func, file_index, func_line):
+def add_decompiler_func_info(cu, func_die, func, decomp, file_index, func_line):
     # https://ghidra.re/ghidra_docs/api/ghidra/app/decompiler/DecompileResults.html
     # print func.allVariables
-    decomp = get_decompiled_function(func)
-    for name, datatype, addr, storage in get_decompiled_variables(decomp):
-        add_variable(cu, func_die, name, datatype, addr, storage)
+    for name, datatype, addr, storage, is_param in get_decompiled_variables(decomp):
+        add_variable(cu, func_die, name, datatype, addr, storage, is_parameter=is_param)
 
     cmarkup = decomp.CCodeMarkup
     # TODO: implement our own pretty printer?
@@ -251,7 +254,7 @@ def add_structures(cu):
         add_type(cu, s)
 
 
-def add_variable(cu, func_die, name, datatype, addr, storage):
+def add_variable(cu, func_die, name, datatype, addr, storage, is_parameter=False):
     # TODO: there could be more than one varnode, what does it even mean?
     varnode = storage.firstVarnode
     # It looks like sometimes ghidra creates a fake/temp variable without any varnodes, it should be ok to ignore it
@@ -260,7 +263,10 @@ def add_variable(cu, func_die, name, datatype, addr, storage):
     varnode_addr = varnode.getAddress()
 
     # TODO: add varaible starting from addr
-    var_die = dwarf_new_die(dbg, DW_TAG_variable, func_die, None, None, None)
+    tag = DW_TAG_variable
+    if is_parameter:
+        tag = DW_TAG_formal_parameter
+    var_die = dwarf_new_die(dbg, tag, func_die, None, None, None)
     type_die = add_type(cu, datatype)
 
     dwarf_add_AT_reference(dbg, var_die, DW_AT_type, type_die)
@@ -308,7 +314,6 @@ def add_function(cu, func, file_index):
     # TODO: Check for multiple ranges
     f_start, f_end = get_function_range(func)
 
-    t = func.returnType
     ret_type_die = add_type(cu, func.returnType)
     dwarf_add_AT_reference(dbg, die, DW_AT_type, ret_type_die)
 
@@ -318,13 +323,17 @@ def add_function(cu, func, file_index):
     func_line = len(decomp_lines) + 1
 
     res = get_decompiled_function(func)
-    d = res.decompiledFunction.c
+    if res.decompiledFunction is None:
+        d = "/* Error decompiling %s: %s */" % (func.getName(True), res.errorMessage)
+    else:
+        d = res.decompiledFunction.c
     decomp_lines.extend(d.split("\n"))
 
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
     dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False)
-    add_decompiler_func_info(cu, die, func, file_index, func_line)
+    if res.decompiledFunction is not None:
+        add_decompiler_func_info(cu, die, func, res, file_index, func_line)
 
     return die
 
@@ -425,7 +434,7 @@ def add_struct_type(cu, struct):
         member_die = dwarf_new_die(dbg, DW_TAG_member, die, None, None, None)
         member_type_die = add_type(cu, c.dataType)
         dwarf_add_AT_reference(dbg, member_die, DW_AT_type, member_type_die)
-        dwarf_add_AT_name(member_die, c.fieldName)
+        dwarf_add_AT_name(member_die, c.fieldName or c.defaultFieldName)
 
         loc_expr = dwarf_new_expr(dbg)
         dwarf_add_expr_gen(loc_expr, DW_OP_plus_uconst, c.offset, 0)
@@ -504,3 +513,6 @@ if __name__ == "__main__":
     sections = generate_dwarf_sections()
     dwarf_producer_finish_a(dbg)
     add_sections_to_elf(exe_path, out_path, sections)
+    print "Done."
+    print "ELF saved to", out_path
+    print "C source saved to", decompiled_c_path

@@ -13,11 +13,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
       - name: Set up JDK 11
         uses: actions/setup-java@v1
         with:
           java-version: 11.0.4
           architecture: x64
+
       - uses: er28-0652/setup-ghidra@master
         with:
           version: "9.1.2"
@@ -55,14 +57,17 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
+
       - name: Set up JDK 11
         uses: actions/setup-java@v1
         with:
           java-version: 11.0.4
           architecture: x64
+
       - uses: er28-0652/setup-ghidra@master
         with:
           version: "9.1.2"
+
       - uses: actions/setup-python@v2
         with:
           python-version: '3.x'
@@ -80,3 +85,34 @@ jobs:
           cd test
           copy %pythonLocation%\python.exe python3.exe
           call run_tests %GHIDRA_INSTALL_DIR%
+
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11.0.4
+          architecture: x64
+
+      - uses: er28-0652/setup-ghidra@master
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          version: "9.1.2"
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      - name: Build jar
+        run: |
+          cd lib
+          ./fetch_libs_and_build.sh
+          mv target/libdwarf.jar ../src
+
+      - name: test
+        run: |
+          cd test
+          ./generate_dbg.py $GHIDRA_INSTALL_DIR

@@ -1,5 +1,5 @@
-target/*
-!target/libdwarf.jar
+target/
+src/main/resources/
 .classpath
 .project
 .settings/

@@ -12,7 +12,7 @@ jobs:
   test-ubuntu:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Set up JDK 11
         uses: actions/setup-java@v1
         with:
@@ -30,17 +30,18 @@ jobs:
 
       - name: install gdb
         run: sudo apt install gdb
-      
-      - name: copy lib
+
+      - name: Build jar
         run: |
-          mkdir -p ~/.ghidra/.ghidra_9.1.2_PUBLIC/plugins/
-          cp lib/target/libdwarf.jar ~/.ghidra/.ghidra_9.1.2_PUBLIC/plugins/
+          cd lib
+          ./fetch_libs_and_build.sh
+          mv target/libdwarf.jar ../src
 
       - name: install python requirements
         run: |
           cd test
           sudo python3 -m pip install -r requirements.txt
-      
+
       - name: test
         run: |
           cd test
@@ -53,7 +54,7 @@ jobs:
   test-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Set up JDK 11
         uses: actions/setup-java@v1
         with:
@@ -66,11 +67,12 @@ jobs:
         with:
           python-version: '3.x'
 
-      - name: copy lib
+      - name: Build jar
         shell: cmd
         run: |
-          mkdir -p %USERPROFILE%\.ghidra\.ghidra_9.1.2_PUBLIC\plugins
-          copy lib\target\libdwarf.jar %USERPROFILE%\.ghidra\.ghidra_9.1.2_PUBLIC\plugins
+          cd lib
+          bash fetch_libs_and_build.sh
+          move target\libdwarf.jar ..\src
 
       - name: test
         shell: cmd

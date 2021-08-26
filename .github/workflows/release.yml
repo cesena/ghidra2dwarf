@@ -13,8 +13,20 @@ jobs:
       - name: Run latest-tag
         uses: EndBug/latest-tag@latest
 
-      - run: |
-          mv lib/target/libdwarf.jar src
+      - name: Set up JDK 11
+        uses: actions/setup-java@v1
+        with:
+          java-version: 11.0.4
+          architecture: x64
+
+      - name: Build jar
+        run: |
+          cd lib
+          ./fetch_libs_and_build.sh
+          mv target/libdwarf.jar ../src
+
+      - name: Zip release
+        run: |
           mv src ghidra2dwarf
           zip ghidra2dwarf.zip ghidra2dwarf/libdwarf.jar ghidra2dwarf/ghidra2dwarf.py ghidra2dwarf/elf.py
 

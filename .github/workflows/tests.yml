@@ -97,7 +97,7 @@ jobs:
           java-version: 11.0.4
           architecture: x64
 
-      - uses: er28-0652/setup-ghidra@master
+      - uses: NextLight/setup-ghidra@octokit-auth
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           version: "9.1.2"

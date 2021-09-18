@@ -340,7 +340,7 @@ def add_function(cu, func, file_index):
 
 def write_source():
     with open(decompiled_c_path, "wb") as src:
-        src.write("\n".join(decomp_lines))
+        src.write("\n".join(decomp_lines).encode("utf8"))
 
 
 def add_type(cu, t):

@@ -12,6 +12,8 @@ except:
 
 import os
 import sys
+import shutil
+import tempfile
 
 from ghidra.app.decompiler import DecompInterface, DecompileOptions
 from ghidra.app.util.bin.format.elf import ElfSymbolTable
@@ -23,6 +25,7 @@ from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
 from ghidra.framework import OperatingSystem
+from ghidra.app.util.exporter import ElfExporter
 
 from elf import add_sections_to_elf
 
@@ -35,6 +38,7 @@ from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
+from java.io import File
 
 
 curr = getCurrentProgram()
@@ -59,21 +63,6 @@ def get_libdwarf_err():
 
 
 record = {}
-exe_path = curr.executablePath
-# workaround ghidra being dumb and putting a slash in front of Windows paths
-# this should be fixed in the next release as discussed here:
-# https://github.com/NationalSecurityAgency/ghidra/pull/2220
-if OperatingSystem.CURRENT_OPERATING_SYSTEM == OperatingSystem.WINDOWS and exe_path[0] == "/":
-    exe_path = exe_path[1:]
-
-while not os.path.isfile(exe_path):
-    print "I couldn't find the original file at path %s. Please specify its path:" % exe_path
-    exe_path = askFile("Original binary path", "Open").path
-    curr.executablePath = exe_path
-    print "Changed binary path to %s." % exe_path
-
-out_path = exe_path + "_dbg"
-decompiled_c_path = exe_path + "_dbg.c"
 decomp_lines = []
 
 ERR_IS_NOT_OK = lambda e: e != DW_DLV_OK
@@ -127,11 +116,11 @@ for name in LibdwarfLibrary.__dict__.keys():
         g[name] = getattr(l, name)
 
 
-def add_debug_info():
+def add_debug_info(decompiled_c_path):
     dwarf_pro_set_default_string_form(dbg, DW_FORM_string)
     cu = dwarf_new_die(dbg, DW_TAG_compile_unit, None, None, None, None)
 
-    c_file_name = os.path.split(decompiled_c_path)[1]
+    c_file_name = os.path.split(decompiled_c_path)[1] # Should we use basename here instead?
     dwarf_add_AT_name(cu, c_file_name)
     dir_index = dwarf_add_directory_decl(dbg, ".")
     file_index = dwarf_add_file_decl(dbg, c_file_name, dir_index, 0, 0)
@@ -338,7 +327,7 @@ def add_function(cu, func, file_index):
     return die
 
 
-def write_source():
+def write_source(decompiled_c_path):
     with open(decompiled_c_path, "wb") as src:
         src.write("\n".join(decomp_lines).encode("utf8"))
 
@@ -491,28 +480,85 @@ def generate_dwarf_sections():
 
 
 if __name__ == "__main__":
-    decompiler = generate_decomp_interface()
-    register_mappings, stack_register_dwarf = generate_register_mappings()
-    dbg = PointerByReference()
-    err = PointerByReference()
-    sections_callback = SectionsCallback()
-    dwarf_producer_init(
-        DW_DLC_WRITE | DW_DLC_SYMBOLIC_RELOCATIONS | DW_DLC_POINTER64 | DW_DLC_OFFSET32 | DW_DLC_TARGET_LITTLEENDIAN,
-        sections_callback,
-        None,
-        None,
-        None,
-        "x86_64",
-        "V2",
-        None,
-        dbg,
-    )
-    dbg = Dwarf_P_Debug(dbg.value)
-    add_debug_info()
-    write_source()
-    sections = generate_dwarf_sections()
-    dwarf_producer_finish_a(dbg)
-    add_sections_to_elf(exe_path, out_path, sections)
-    print "Done."
-    print "ELF saved to", out_path
-    print "C source saved to", decompiled_c_path
+    args = getScriptArgs()
+    response_dict = dict()
+
+    output_dir = None
+    if len(args) < 1:
+        output_dir = str(askDirectory("Where would you like the output files?", "Open directory"))
+
+    # https://security.openstack.org/guidelines/dg_using-temporary-files-securely.html
+    tmpdir = tempfile.mkdtemp()
+    predictable_filename = os.path.basename(curr.executablePath) # Do we want this (executablePath), or program_name?
+
+    # Ensure the file is read/write by the creator only
+    saved_umask = os.umask(0077)
+
+    exe_path = os.path.join(tmpdir, predictable_filename)
+
+    try:
+        f = File(exe_path)
+
+        eexp = ElfExporter()
+        memory = curr.getMemory()
+        monitor = getMonitor()
+        domainObj = curr
+
+        eexp.export(f, domainObj, memory, monitor)
+
+        out_path = exe_path + "_dbg"
+        decompiled_c_path = exe_path + "_dbg.c"
+
+        decompiler = generate_decomp_interface()
+        register_mappings, stack_register_dwarf = generate_register_mappings()
+        dbg = PointerByReference()
+        err = PointerByReference()
+        sections_callback = SectionsCallback()
+        dwarf_producer_init(
+            DW_DLC_WRITE | DW_DLC_SYMBOLIC_RELOCATIONS | DW_DLC_POINTER64 | DW_DLC_OFFSET32 | DW_DLC_TARGET_LITTLEENDIAN,
+            sections_callback,
+            None,
+            None,
+            None,
+            "x86_64",
+            "V2",
+            None,
+            dbg,
+        )
+        dbg = Dwarf_P_Debug(dbg.value)
+        add_debug_info(decompiled_c_path)
+        write_source(decompiled_c_path)
+        sections = generate_dwarf_sections()
+        dwarf_producer_finish_a(dbg)
+        add_sections_to_elf(exe_path, out_path, sections)
+        print("Done adding symbols.")
+
+        if output_dir is None:
+            output_zip = args[0]
+            print("Headless zip mode, output set to " + str(output_zip))
+
+            from zipfile import ZipFile, ZIP_STORED
+
+            with ZipFile(output_zip, 'w', ZIP_STORED) as zipfp:
+                zipfp.write(exe_path, os.path.basename(exe_path))
+                zipfp.write(out_path, os.path.basename(out_path))
+                zipfp.write(decompiled_c_path, os.path.basename(decompiled_c_path))
+
+            os.remove(exe_path)
+            os.remove(out_path)
+            os.remove(decompiled_c_path)
+        else:
+            shutil.move(exe_path, output_dir)
+            shutil.move(out_path, output_dir)
+            shutil.move(decompiled_c_path, output_dir)
+            print("ELF saved to", output_dir)
+            print("C source saved to", output_dir)
+
+    except IOError as e:
+        print('IOError')
+
+    finally:
+        os.umask(saved_umask)
+        os.rmdir(tmpdir) # Maybe force remove?
+        # shutil.rmtree(tmpdir, ignore_errors=True)
+

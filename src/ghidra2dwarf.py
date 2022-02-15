@@ -559,6 +559,6 @@ if __name__ == "__main__":
 
     finally:
         os.umask(saved_umask)
-        os.rmdir(tmpdir) # Maybe force remove?
-        # shutil.rmtree(tmpdir, ignore_errors=True)
+        # os.rmdir(tmpdir) # Maybe force remove?
+        shutil.rmtree(tmpdir, ignore_errors=True)
 

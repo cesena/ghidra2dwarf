@@ -449,6 +449,7 @@ class EM(DumbEnum):
 	EM_SLE9X = 179, 'Infineon Technologies SLE9X core'
 	# 180-182 Reserved for future Intel use
 	# 183-184 Reserved for future ARM use
+	EM_AAR64 = 183, 'AArch64'
 	EM_AVR32 = 185, 'Atmel Corporation 32-bit microprocessor family'
 	EM_STM8 = 186, 'STMicroeletronics STM8 8-bit microcontroller'
 	EM_TILE64 = 187, 'Tilera TILE64 multicore architecture family'

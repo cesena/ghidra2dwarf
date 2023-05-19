@@ -138,9 +138,14 @@ def add_debug_info():
     dwarf_add_AT_comp_dir(cu, ".")
 
     funcs = get_functions()
+    addr_to_line = {}
     for i, f in enumerate(funcs):
         print "Decompiling function %d: %s" % (i, f)
-        add_function(cu, f, file_index)
+        die, func_addrs = add_function(cu, f, file_index)
+        addr_to_line.update(func_addrs)
+
+    for addr in sorted(addr_to_line):
+        dwarf_add_line_entry(dbg, file_index, addr, addr_to_line[addr], 0, True, False)
 
     dwarf_add_die_to_debug_a(dbg, cu)
     add_global_variables(cu)
@@ -200,17 +205,13 @@ def add_decompiler_func_info(cu, func_die, func, decomp, file_index, func_line):
     # TODO: implement our own pretty printer?
     # https://github.com/NationalSecurityAgency/ghidra/blob/master/Ghidra/Features/Decompiler/src/main/java/ghidra/app/decompiler/PrettyPrinter.java
     lines = DecompilerUtils.toLines(cmarkup)
+    addr_to_line = {}
     for l in lines:
-        # TODO: multiple lines might have the same lowest address
-        addresses = [get_real_address(t.minAddress) for t in l.allTokens if t.minAddress]
-        # TODO: We need to use max or min? In some cases with min we have incorrect offset
-        best_addr = addresses[0] if addresses else None
+        for token in l.allTokens:
+            if token.minAddress:
+                addr_to_line[get_real_address(token.minAddress)] = l.lineNumber + func_line - 1
 
-        if best_addr:
-            # TODO: is this call to dwarf_lne_set_address needed?
-            # dwarf_lne_set_address(dbg, lowest_line_addr, 0)
-            # https://nxmnpg.lemoda.net/3/dwarf_add_line_entry
-            dwarf_add_line_entry(dbg, file_index, best_addr, l.lineNumber + func_line - 1, 0, True, False)
+    return addr_to_line
 
 
 def get_functions():
@@ -331,11 +332,11 @@ def add_function(cu, func, file_index):
 
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
-    dwarf_add_line_entry(dbg, file_index, f_start, func_line, 0, True, False)
+    addr_to_line = {f_start: func_line}
     if res.decompiledFunction is not None:
-        add_decompiler_func_info(cu, die, func, res, file_index, func_line)
+        addr_to_line.update(add_decompiler_func_info(cu, die, func, res, file_index, func_line))
 
-    return die
+    return die, addr_to_line
 
 
 def write_source():

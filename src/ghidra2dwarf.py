@@ -331,8 +331,8 @@ def add_function(cu, func, file_index):
     decomp_lines.extend(d.split("\n"))
 
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
-    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line)
-    addr_to_line = {f_start: func_line}
+    dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line + 1)
+    addr_to_line = {f_start: func_line + 1}
     if res.decompiledFunction is not None:
         addr_to_line.update(add_decompiler_func_info(cu, die, func, res, file_index, func_line))
 

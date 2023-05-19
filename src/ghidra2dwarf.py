@@ -319,7 +319,7 @@ def add_function(cu, func, file_index):
     dwarf_add_AT_reference(dbg, die, DW_AT_type, ret_type_die)
 
     dwarf_add_AT_targ_address(dbg, die, DW_AT_low_pc, f_start, 0)
-    dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end - 1, 0)
+    dwarf_add_AT_targ_address(dbg, die, DW_AT_high_pc, f_end + 1, 0)
 
     func_line = len(decomp_lines) + 1
 

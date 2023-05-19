@@ -214,7 +214,7 @@ class DumbEnum(object):
 			try:
 				return cls._bycode[idx]
 			except KeyError:
-				raise Exception('enum %s has no entry with code %d.' % (cls.__name__, idx))
+				return DumbEnumValue("%s_%s" % (cls.__name__, idx), idx, "Unknown entry %d" % idx)
 
 
 # All the constants are parsed from https://github.com/slorquet/elffile2/blob/master/elffile.py

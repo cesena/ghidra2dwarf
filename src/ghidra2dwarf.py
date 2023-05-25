@@ -95,7 +95,7 @@ DWARF_FUNCTIONS = {
     'dwarf_add_directory_decl': ERR_IS_NOCOUNT,
     'dwarf_add_file_decl': ERR_IS_NOCOUNT,
     'dwarf_add_line_entry': ERR_IS_NOCOUNT,
-    'dwarf_lne_set_address': ERR_IS_NOCOUNT,
+    'dwarf_lne_end_sequence_a': ERR_IS_NOCOUNT,
     'dwarf_new_die': ERR_IS_BADADDR,
     'dwarf_add_die_to_debug_a': ERR_IS_NOT_OK,
     'dwarf_new_expr': ERR_IS_BADADDR,
@@ -139,13 +139,18 @@ def add_debug_info():
 
     funcs = get_functions()
     addr_to_line = {}
+    max_addr = 0
     for i, f in enumerate(funcs):
         print "Decompiling function %d: %s" % (i, f)
         die, func_addrs = add_function(cu, f, file_index)
         addr_to_line.update(func_addrs)
+        max_addr = max(max_addr, get_function_range(f)[1] + 1)
 
     for addr in sorted(addr_to_line):
         dwarf_add_line_entry(dbg, file_index, addr, addr_to_line[addr], 0, True, False)
+        max_addr = max(max_addr, addr + 1)
+
+    dwarf_lne_end_sequence_a(dbg, max_addr)
 
     dwarf_add_die_to_debug_a(dbg, cu)
     add_global_variables(cu)

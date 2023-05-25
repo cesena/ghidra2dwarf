@@ -30,7 +30,7 @@ public interface LibdwarfLibrary extends Library {
 	long dwarf_add_directory_decl(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, String charPtr1, PointerByReference Dwarf_ErrorPtr1);
 	long dwarf_add_file_decl(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, String charPtr1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, long Dwarf_Unsigned3, PointerByReference Dwarf_ErrorPtr1);
 	long dwarf_add_line_entry(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, long Dwarf_Unsigned1, long Dwarf_Addr1, long Dwarf_Unsigned2, long Dwarf_Signed1, int Dwarf_Bool1, int Dwarf_Bool2, PointerByReference Dwarf_ErrorPtr1);
-	long dwarf_lne_set_address(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, long Dwarf_Unsigned1, long Dwarf_Unsigned2, PointerByReference Dwarf_ErrorPtr1);
+	long dwarf_lne_end_sequence_a(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, long Dwarf_Addr1, PointerByReference Dwarf_ErrorPtr1);
 	LibdwarfLibrary.Dwarf_P_Die dwarf_new_die(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, long Dwarf_Tag1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die2, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die3, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die4, PointerByReference Dwarf_ErrorPtr1);
 	int dwarf_add_die_to_debug_a(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, LibdwarfLibrary.Dwarf_P_Die Dwarf_P_Die1, PointerByReference Dwarf_ErrorPtr1);
 	LibdwarfLibrary.Dwarf_P_Expr dwarf_new_expr(LibdwarfLibrary.Dwarf_P_Debug Dwarf_P_Debug1, PointerByReference Dwarf_ErrorPtr1);

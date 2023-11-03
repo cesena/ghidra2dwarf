@@ -25,7 +25,7 @@ from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
 from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
 from ghidra.framework import OperatingSystem
-from ghidra.app.util.exporter import ElfExporter
+from ghidra.app.util.exporter import OriginalFileExporter
 
 from elf import add_sections_to_elf
 
@@ -505,7 +505,7 @@ if __name__ == "__main__":
     try:
         f = File(exe_path)
 
-        eexp = ElfExporter()
+        eexp = OriginalFileExporter()
         memory = curr.getMemory()
         monitor = getMonitor()
         domainObj = curr

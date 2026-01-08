@@ -72,8 +72,8 @@ while not os.path.isfile(exe_path):
     curr.executablePath = exe_path
     print "Changed binary path to %s." % exe_path
 
-out_path = exe_path + "_dbg"
-decompiled_c_path = exe_path + "_dbg.c"
+out_path = "/tmp/ghidra2elf"
+decompiled_c_path = out_path + ".c"
 decomp_lines = []
 
 ERR_IS_NOT_OK = lambda e: e != DW_DLV_OK

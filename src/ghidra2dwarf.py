@@ -35,6 +35,9 @@ from libdwarf import LibdwarfLibrary
 from com.sun.jna.ptr import PointerByReference, LongByReference
 from com.sun.jna import Memory
 from java.nio import ByteBuffer
+from ghidra.program.model.symbol import SourceType, SymbolType
+from add_ghidra_symbols import add_ghidra_symbols
+
 
 
 curr = getCurrentProgram()
@@ -519,6 +522,24 @@ if __name__ == "__main__":
     sections = generate_dwarf_sections()
     dwarf_producer_finish_a(dbg)
     add_sections_to_elf(exe_path, out_path, sections)
+
+
+    labels = []
+    funcs = []
+
+    for s in curr.symbolTable.getAllSymbols(True):
+        if s.source != SourceType.USER_DEFINED:
+            continue
+
+        addr = get_real_address(s.address)
+
+        if s.symbolType == SymbolType.FUNCTION:
+            funcs.append((s.name, addr))
+        elif s.symbolType == SymbolType.LABEL:
+            labels.append((s.name, addr))
+
+    add_ghidra_symbols(exe_path, out_path, labels, funcs)
+
     print "Done."
     print "ELF saved to", out_path
     print "C source saved to", decompiled_c_path

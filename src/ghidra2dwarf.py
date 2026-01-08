@@ -19,7 +19,7 @@ from ghidra.app.decompiler.component import DecompilerUtils
 from ghidra.program.database.data import PointerDB
 from ghidra.program.model.symbol import SymbolTable, SymbolType
 from ghidra.program.model.data import Pointer, Structure, DefaultDataType, BuiltInDataType, BooleanDataType, CharDataType, AbstractIntegerDataType, AbstractFloatDataType, AbstractComplexDataType, ArrayDataType, Array, Enum
-from ghidra.app.util.bin.format.dwarf4.next import DWARFRegisterMappingsManager
+from ghidra.app.util.bin.format.dwarf import DWARFRegisterMappingsManager
 from ghidra.util.task import ConsoleTaskMonitor
 from ghidra.app.util.opinion import ElfLoader
 from ghidra.framework import OperatingSystem

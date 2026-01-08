@@ -37,6 +37,9 @@ from com.sun.jna import Memory
 from java.nio import ByteBuffer
 
 
+skip = True
+
+
 curr = getCurrentProgram()
 if curr.executableFormat != ElfLoader.ELF_NAME:
     print "Only ELF binaries are supported"
@@ -328,18 +331,23 @@ def add_function(cu, func, file_index):
 
     func_line = len(decomp_lines) + 1
 
-    res = get_decompiled_function(func)
-    if res.decompiledFunction is None:
-        d = "/* Error decompiling %s: %s */" % (func.getName(True), res.errorMessage)
+    if skip:
+        d = "/* Skipped %s */" % (func.getName(True))
     else:
-        d = res.decompiledFunction.c
+        res = get_decompiled_function(func)
+        if res.decompiledFunction is None:
+            d = "/* Error decompiling %s: %s */" % (func.getName(True), res.errorMessage)
+        else:
+            d = res.decompiledFunction.c
     decomp_lines.extend(d.split("\n"))
 
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_file, file_index)
     dwarf_add_AT_unsigned_const(dbg, die, DW_AT_decl_line, func_line + 1)
     addr_to_line = {f_start: func_line + 1}
-    if res.decompiledFunction is not None:
-        addr_to_line.update(add_decompiler_func_info(cu, die, func, res, file_index, func_line))
+
+    if not skip:
+        if res.decompiledFunction is not None:
+            addr_to_line.update(add_decompiler_func_info(cu, die, func, res, file_index, func_line))
 
     return die, addr_to_line
 
